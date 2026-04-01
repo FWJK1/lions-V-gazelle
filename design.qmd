@@ -13,6 +13,11 @@ format:
     page-layout: full
   ipynb:
     wrap: none
+  pdf:
+    include-in-header:
+      text: |
+        \usepackage{enumitem}
+        \setlistdepth{9}
 execute: 
   cache: true
 editor:
@@ -105,52 +110,38 @@ Though the paper doesn't really discuss it, at this point genetic programming re
 # Code Design
 We are going to evaluate a pride  that consists of four separate lions, which we can represent as a class with four separate tree classes. This requires:
 
-0. Basic loop: positions -> contexts -> tree processing -> back to positions
-1.  A recursive node class
-    * parent 
-    * operation definition (including required number of children)
-    * children
-    * method to operate on children (recursively) and return result
-        * take in context (from positions)
-2. Random tree generation:
-    * use the node class to make trees that meet specifications
-3. Parent selection: 
-    * We need 900 parents for 450 (90%), so we need to select a parent 900 times. 
-    *  We do this via tournament selection, I think:  take $N$  individuals, and take the best one as a default. Seems like standard $N=7$. 
-4. Crossover
-    * The individuals to crossover are selected from teams according to the following rules:
-        * Cloning: all individuals in a team are the same; doesn't matter.
-        * Free Breeding: all individuals in a team are different, but we pick them at random
-        * Restricted Breeding: we only select individuals that are the same lion number. 
-    * crossover itself:
-        * swap subtrees
-        * don't allow going over 17 depth or 70 size (if so, reject, try again)
-5. Mutation: pick random node, replace with a new random subtree (that doesn't go over length)
-6. A world. 15x15, but allowing floating point. 
-7. Algorithm: An evolutionary loop for 51 generations. 
-    0. For first generation, randomly generate population of 500 lions; a list. 
-    1.  For future generation, create new generation:
-        * get population of Crossover proportion x 2 + mutation proportion for parents
-        * Crossover x.9
-        * Mutation
-    2. Evaluation: for all prides of lions. This is for 1 generation. 
-        1. For five steps: run simulation
-            0. randomly place all animals. 
-            1. loop for 15 steps:
-                1. pass in sensor values (position (x,y) of each individual)
-                2. generate contexts from positions (nearest lion, etc)
-                3. gazelle moves according to  $\sum_{v \in V} \frac{v}{\lVert v \rVert } (\lVert \text{max} \rVert -\lVert v \rVert )$
-                4. each lion moves by evaluating its ctx via its tree
-                5. early end if nearest < 1
-            2. return fitness: nearest -1 if nearest > 1 else 0 
-        2. Return average of five simulations. This is the fitness score of that pride. 
-        3. cache the best pride, as well as context and positions for its run on a new set (for image)
-    3. After 51 generations, we should have:
-        * np array for 
-            * best fitness by gen
-            * avg fitness by ge
-        * list of the best prides for each gen
-        * 
+# Code Design
 
+We are going to evaluate a pride that consists of four separate lions, which we can represent as a class with four separate tree classes. This requires:
+
+0. Basic loop: positions -> contexts -> tree processing -> back to positions
+1. A recursive node class
+   - operation definition (including required number of children)
+   - children
+   - method to operate on children (recursively) and return result
+   - take in context (from positions)
+2. Random tree generation: use the node class to make trees that meet specifications
+3. Parent selection: select 900 parents via tournament selection ($N=7$), taking the best of each tournament.
+4. Crossover
+   - Individual selection rules by strategy:
+      - Cloning: all individuals identical; doesn't matter.
+      - Free Breeding: pick at random.
+      - Restricted Breeding: only lion $i$ with lion $i$.
+   - Swap subtrees; reject if result exceeds depth 17 or size 70.
+5. Mutation: pick random node, replace with a new random subtree.
+6. A world: 15x15, floating point, toroidal.
+7. Algorithm: evolutionary loop for 51 generations.
+   - First generation: randomly generate 500 prides.
+   - Future generations: select parents, apply crossover (90%) and mutation (10%).
+   - Evaluation per pride:
+      - Run 5 simulations, each up to 15 steps.
+      - Each step: update contexts, move gazelle by fear vector, move lions by tree evaluation, check catch condition.
+      - Fitness: average of (nearest - 1) across simulations, 0 if caught.
+   - Cache best pride and positions per generation.
+8. After 51 generations, store:
+   - Best fitness by generation.
+   - Average fitness by generation.
+   - List of best prides per generation.
+   - Best positions per generation.
 
 

@@ -110,8 +110,9 @@ window.Quarto = {
   <li><a href="#testing" id="toc-testing" class="nav-link" data-scroll-target="#testing">Testing</a></li>
   </ul></li>
   <li><a href="#code-design" id="toc-code-design" class="nav-link" data-scroll-target="#code-design">Code Design</a></li>
+  <li><a href="#code-design-1" id="toc-code-design-1" class="nav-link" data-scroll-target="#code-design-1">Code Design</a></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="design.ipynb" download="design.ipynb"><i class="bi bi-journal-code"></i>Jupyter</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="design.ipynb" download="design.ipynb"><i class="bi bi-journal-code"></i>Jupyter</a></li><li><a href="design.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
 </div>
 <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
 </div>
@@ -356,81 +357,52 @@ window.Quarto = {
 <section id="code-design" class="level1">
 <h1>Code Design</h1>
 <p>We are going to evaluate a pride that consists of four separate lions, which we can represent as a class with four separate tree classes. This requires:</p>
+</section>
+<section id="code-design-1" class="level1">
+<h1>Code Design</h1>
+<p>We are going to evaluate a pride that consists of four separate lions, which we can represent as a class with four separate tree classes. This requires:</p>
 <ol start="0" type="1">
 <li>Basic loop: positions -&gt; contexts -&gt; tree processing -&gt; back to positions</li>
 <li>A recursive node class
 <ul>
-<li>parent</li>
 <li>operation definition (including required number of children)</li>
 <li>children</li>
-<li>method to operate on children (recursively) and return result
-<ul>
+<li>method to operate on children (recursively) and return result</li>
 <li>take in context (from positions)</li>
 </ul></li>
-</ul></li>
-<li>Random tree generation:
-<ul>
-<li>use the node class to make trees that meet specifications</li>
-</ul></li>
-<li>Parent selection:
-<ul>
-<li>We need 900 parents for 450 (90%), so we need to select a parent 900 times.</li>
-<li>We do this via tournament selection, I think: take <span class="math inline">\(N\)</span> individuals, and take the best one as a default. Seems like standard <span class="math inline">\(N=7\)</span>.</li>
-</ul></li>
+<li>Random tree generation: use the node class to make trees that meet specifications</li>
+<li>Parent selection: select 900 parents via tournament selection (<span class="math inline">\(N=7\)</span>), taking the best of each tournament.</li>
 <li>Crossover
 <ul>
-<li>The individuals to crossover are selected from teams according to the following rules:
+<li>Individual selection rules by strategy:
 <ul>
-<li>Cloning: all individuals in a team are the same; doesn’t matter.</li>
-<li>Free Breeding: all individuals in a team are different, but we pick them at random</li>
-<li>Restricted Breeding: we only select individuals that are the same lion number.</li>
+<li>Cloning: all individuals identical; doesn’t matter.</li>
+<li>Free Breeding: pick at random.</li>
+<li>Restricted Breeding: only lion <span class="math inline">\(i\)</span> with lion <span class="math inline">\(i\)</span>.</li>
 </ul></li>
-<li>crossover itself:
+<li>Swap subtrees; reject if result exceeds depth 17 or size 70.</li>
+</ul></li>
+<li>Mutation: pick random node, replace with a new random subtree.</li>
+<li>A world: 15x15, floating point, toroidal.</li>
+<li>Algorithm: evolutionary loop for 51 generations.
 <ul>
-<li>swap subtrees</li>
-<li>don’t allow going over 17 depth or 70 size (if so, reject, try again)</li>
-</ul></li>
-</ul></li>
-<li>Mutation: pick random node, replace with a new random subtree (that doesn’t go over length)</li>
-<li>A world. 15x15, but allowing floating point.</li>
-<li>Algorithm: An evolutionary loop for 51 generations.
-<ol start="0" type="1">
-<li>For first generation, randomly generate population of 500 lions; a list.</li>
-<li>For future generation, create new generation:
+<li>First generation: randomly generate 500 prides.</li>
+<li>Future generations: select parents, apply crossover (90%) and mutation (10%).</li>
+<li>Evaluation per pride:
 <ul>
-<li>get population of Crossover proportion x 2 + mutation proportion for parents</li>
-<li>Crossover x.9</li>
-<li>Mutation</li>
+<li>Run 5 simulations, each up to 15 steps.</li>
+<li>Each step: update contexts, move gazelle by fear vector, move lions by tree evaluation, check catch condition.</li>
+<li>Fitness: average of (nearest - 1) across simulations, 0 if caught.</li>
 </ul></li>
-<li>Evaluation: for all prides of lions. This is for 1 generation.
-<ol type="1">
-<li>For five steps: run simulation
-<ol start="0" type="1">
-<li>randomly place all animals.</li>
-<li>loop for 15 steps:
-<ol type="1">
-<li>pass in sensor values (position (x,y) of each individual)</li>
-<li>generate contexts from positions (nearest lion, etc)</li>
-<li>gazelle moves according to <span class="math inline">\(\sum_{v \in V} \frac{v}{\lVert v \rVert } (\lVert \text{max} \rVert -\lVert v \rVert )\)</span></li>
-<li>each lion moves by evaluating its ctx via its tree</li>
-<li>early end if nearest &lt; 1</li>
-</ol></li>
-<li>return fitness: nearest -1 if nearest &gt; 1 else 0</li>
-</ol></li>
-<li>Return average of five simulations. This is the fitness score of that pride.</li>
-<li>cache the best pride, as well as context and positions for its run on a new set (for image)</li>
-</ol></li>
-<li>After 51 generations, we should have:
+<li>Cache best pride and positions per generation.</li>
+</ul></li>
+<li>After 51 generations, store:
 <ul>
-<li>np array for
-<ul>
-<li>best fitness by gen</li>
-<li>avg fitness by ge</li>
+<li>Best fitness by generation.</li>
+<li>Average fitness by generation.</li>
+<li>List of best prides per generation.</li>
+<li>Best positions per generation.</li>
 </ul></li>
-<li>list of the best prides for each gen</li>
-<li></li>
-</ul></li>
-</ol></li>
 </ol>
 
 </section>
