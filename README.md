@@ -1,6 +1,6 @@
 
 
-# Overview
+# Evolving Teamwork and Coordination with Genetic Programming (REDUX)
 * This is a reimplementation of a previous paper, below. This code adds visualization and updates to Python, with a potential to extend. 
 * see `design.qmd`, or the compiled `design.html`, for an overview of the paper, areas of potential confusion, and a rough overview of my implementation. 
 * principal code is currently in `node.py`
