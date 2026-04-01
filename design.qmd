@@ -1,0 +1,144 @@
+---
+title: "Lions vs Gazelle"
+author: Fitz Koch
+date: March 31, 2026
+description:  Working through design and trial/error on reimplementation of classic Lions chasing Gazelle project
+format: 
+  html:
+    html-math-method: mathjax
+    fig-responsive: true
+    toc: true
+    toc-location: left
+    theme: cosmo
+    page-layout: full
+  ipynb:
+    wrap: none
+execute: 
+  cache: true
+editor:
+    render-on-save: true
+bibliography: /home/fitsl/library/zotero/fjk_library.bib
+---
+
+# Overview (Goals)
+
+- Reimplementation of @lukeEvolvingTeamworkCoordination1996
+- Add visualization
+- Potential Extension
+
+# Design
+
+## Operators
+| Name       | Args | Group | Description                                                                                                                                                                                                                                                |
+| ---------- | ---- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| last       | 0    | 0     | One unit in last direction. First move: rand                                                                                                                                                                                                               |
+| rand-dir   | 0    | 0     | random normal vec                                                                                                                                                                                                                                          |
+| gazelle    | 0    | 0     | smallest vector lion to gaz                                                                                                                                                                                                                                |
+| +          | 2    | 0     | add two ve                                                                                                                                                                                                                                                 |
+| -          | 1    | 0     | negate                                                                                                                                                                                                                                                     |
+| $\times 2$ | 1    | 0     | multiply magnitude of vect                                                                                                                                                                                                                                 |
+| $/ 2$      | 1    | 0     | divide magnitude of vec                                                                                                                                                                                                                                    |
+| $\to 90$   | 1    | 0     | rotate vector clockwise 9                                                                                                                                                                                                                                  |
+| rand       | 1    | 0     | given a vector, return vector in the same direction, whose magnitude varies between 0 and original                                                                                                                                                         |
+| inv        | 1    | 0     | invert magnitude...: start with $\left\lVert \ \text{max}\ \right\rVert = \sqrt{ \left( \frac{w}{2} \right)^{2} +\left(  \frac{h}{2} \right)^{2}}$ and then return $\frac{v}{\lVert v \rVert} =(\lVert \ \text{max}\ \rVert - \lVert v \rVert)$. 
+| ifdot      | 4    | 0     | Evaluate the first and second arguments. If their dot product is greater than or equal to 0, then evaluate and return the third argument, else evaluate and return the fourth argument.                                                                    |
+| if>=       | 4    | 0     | Evaluate the first and second arguments. If the magnitude of the first argument is greater than or equal to the magnitude of the second argument, then evaluate and return the third argument, else evaluate and return the fourth argument.               |
+| nearest    | 0    | 1     | vector from lion nearest gazelle to gazelle                                                                                                                                                                                                                                |
+| lion       | 0    | 1     | vector from lion  to nearest neighbor                                                                                                                                                                                                                       |
+| rlion      | 0    | 1     | vector from lion to first lino encountered in clockwise sweep. sweep begins in the direction lion moved last. all minimum are gathered, then find first.                                                                                                   |
+| llion      | 0    | 1     | vector from lion to first lino encountered in counterclockwise sweep. sweep begins in the direction lion moved last. all minimum are gathered, then find first.<br>                                                                                        |
+| lion-$n$   | 0    | 2     | A vector from the lion to lion $n$                                                                                                                                                                                                  |
+
+
+
+## Breeding 
+- clones (same in every brain)
+- free breeding (any member to breed with any member)
+- restricted: only lion $i$  with lion $i$, etc. 
+
+
+## World and Animals
+- toroidal, $n \times n$, with  $n=15$
+- discrete updates
+- Gazelle:
+    - randomly placed
+    - 3 units per turn
+    - follows:
+
+$$
+- \sum_{v \in V} \frac{v}{\lVert v \rVert } (\lVert max \rVert -\lVert v \rVert )
+$$
+
+
+- Lion
+    - randomly placed
+    - 1 unit per turn
+    - goal: get one lion with 1 unit of the gazelle
+
+
+## Math Summary:
+- $\left\lVert \text{max}\right\rVert = \sqrt{ \left( \frac{w}{2} \right)^{2} +\left(  \frac{h}{2} \right)^{2}}$ 
+- gazelle movement: $-\sum_{v \in V} \frac{v}{\lVert v \rVert } (\lVert \text{max} \rVert -\lVert v \rVert )$
+
+
+## Genetic Programming
+Though the paper doesn't really discuss it, at this point genetic programming refers to a system where internal nodes are functions and operators, and leaf nodes are variables/constants. They use `lil-gp`, a C codebase or library or whatever you call them, but I plan on just reimplementing in python. Basically, we build a tree, 
+
+- population 500
+- maximum tree size: 70
+- maximum depth: 17
+- crossover (90%)
+- reproduction (10%) 
+- selection: unclear. Seems like probably tournament selection? But maybe more research required. 
+
+## Testing 
+- 100 runs for each combo of sensing and breeding, 100 for each control
+- fitness of groups based on average of 5 simulation trials
+- 15 steps per sim
+- 0 length vector => random movement of one unit. 
+- 51 generations
+* population of 500 
+- **Fitness**: 0 if closest lion within 1 unit, else distance minus 1. minimization.  
+
+
+# Code Design
+We are going to evaluate a pride  that consists of four separate lions, which we can represent as a class with four separate tree classes. This requires:
+
+0. a dictionary of positions, their relations, etc. 
+1.  A recursive node class
+    * parent 
+    * operation definition (including required number of children)
+    * children
+    * method to operate on children (recursively) and return result
+        * take in dictionary of positions
+2. Random tree generation:
+3. Crossover
+    * We need 900 parents for 450 (90%), so we need to select a parent 900 times. 
+    *  We do this via tournament selection, I think:  take $N$  individuals, and take the best one as a default. Seems like standard $N=7$. The individuals are selected from teams according to the following rules:
+        * Cloning: all individuals in a team are the same; doesn't matter.
+        * Free Breeding: all individuals in a team are different, but we pick them at random
+        * Restricted Breeding: we only select individuals that are the same lion number. 
+    * crossover itself:
+        * swap subtrees
+        * don't allow going over 17 depth or 70 size (if so, reject, try again)
+4. Mutation: pick random node, replace with a new random subtree (that doesn't go over length)
+5. A world. 15x15, but allowing floating point. 
+7. Algorithm: An evolutionary loop for 51 generations. 
+    0. For first generation, randomly generate population of 500 lions. 
+    1.  For future generation, create new generation:
+        * Crossover
+        * Mutation
+    2. Evaluation: for all prides of lions. This is for 1 generation. 
+        1. For five steps: run simulation
+            0. randomly place all animals. 
+            1. loop for 15 steps:
+                1. pass in sensor values (position (x,y) of each individual)
+                2. generate contexts from positions (nearest lion, etc)
+                3. gazelle moves according to  $\sum_{v \in V} \frac{v}{\lVert v \rVert } (\lVert \text{max} \rVert -\lVert v \rVert )$
+                4. each lion moves by evaluating its ctx via its tree
+                5. early end if nearest < 1
+            2. return fitness: nearest -1 if nearest > 1 else 0 
+        2. Return average of five simulations. This is the fitness score of that pride. 
+    3. After 51 generations, return the final fitness. 
+
+

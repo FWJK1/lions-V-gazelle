@@ -1,0 +1,34 @@
+import numpy as np
+
+# world def and simulation constants
+WIDTH = 15
+HEIGHT = 15
+MAX_NORM = np.sqrt((WIDTH / 2) ** 2 + (HEIGHT / 2) ** 2)
+WORLD = np.array([WIDTH, HEIGHT], dtype=float)
+GAZELLE_STEP = 3
+
+
+# tree restrictions and probability
+MAX_DEPTH = 17
+MAX_SIZE = 70
+EARLY_TERMINAL_P = 0.3
+
+
+# run count stuff
+GEN_COUNT = 51
+STEPS_PER_SIM = 15
+SIMS_PER_GEN = 5
+
+
+# Population stuff, largely for breeding
+POPULATION_COUNT = 500
+MUTATION_PERCENTAGE = 0.1
+CROSSOVER_PERCENTAGE = 1 - MUTATION_PERCENTAGE
+MUTATION_COUNT = int(POPULATION_COUNT * MUTATION_PERCENTAGE)
+CROSSOVER_COUNT = int(POPULATION_COUNT * CROSSOVER_PERCENTAGE)
+PARENT_COUNT = MUTATION_COUNT + 2 * CROSSOVER_COUNT
+TOURNAMENT_N = 7
+
+
+# viz
+SCALE = 50
