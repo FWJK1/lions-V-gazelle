@@ -58,7 +58,7 @@ bibliography: /home/fitsl/library/zotero/fjk_library.bib
 
 
 ## World and Animals
-- toroidal, $n \times n$, with  $n=15$
+- toroidal, $n \times n$, with  $n=15$; must remember wrapping
 - discrete updates
 - Gazelle:
     - randomly placed
@@ -84,12 +84,13 @@ $$
 ## Genetic Programming
 Though the paper doesn't really discuss it, at this point genetic programming refers to a system where internal nodes are functions and operators, and leaf nodes are variables/constants. They use `lil-gp`, a C codebase or library or whatever you call them, but I plan on just reimplementing in python. Basically, we build a tree, 
 
-- population 500
+- population 500 (of lions/trees? or of prides?)
+    - decided **prides**
 - maximum tree size: 70
 - maximum depth: 17
 - crossover (90%)
 - reproduction (10%) 
-- selection: unclear. Seems like probably tournament selection? But maybe more research required. 
+- selection: unclear. Claude thinks probably tournament selection, ? But maybe more research required. 
 
 ## Testing 
 - 100 runs for each combo of sensing and breeding, 100 for each control
@@ -104,29 +105,33 @@ Though the paper doesn't really discuss it, at this point genetic programming re
 # Code Design
 We are going to evaluate a pride  that consists of four separate lions, which we can represent as a class with four separate tree classes. This requires:
 
-0. a dictionary of positions, their relations, etc. 
+0. Basic loop: positions -> contexts -> tree processing -> back to positions
 1.  A recursive node class
     * parent 
     * operation definition (including required number of children)
     * children
     * method to operate on children (recursively) and return result
-        * take in dictionary of positions
+        * take in context (from positions)
 2. Random tree generation:
-3. Crossover
+    * use the node class to make trees that meet specifications
+3. Parent selection: 
     * We need 900 parents for 450 (90%), so we need to select a parent 900 times. 
-    *  We do this via tournament selection, I think:  take $N$  individuals, and take the best one as a default. Seems like standard $N=7$. The individuals are selected from teams according to the following rules:
+    *  We do this via tournament selection, I think:  take $N$  individuals, and take the best one as a default. Seems like standard $N=7$. 
+4. Crossover
+    * The individuals to crossover are selected from teams according to the following rules:
         * Cloning: all individuals in a team are the same; doesn't matter.
         * Free Breeding: all individuals in a team are different, but we pick them at random
         * Restricted Breeding: we only select individuals that are the same lion number. 
     * crossover itself:
         * swap subtrees
         * don't allow going over 17 depth or 70 size (if so, reject, try again)
-4. Mutation: pick random node, replace with a new random subtree (that doesn't go over length)
-5. A world. 15x15, but allowing floating point. 
+5. Mutation: pick random node, replace with a new random subtree (that doesn't go over length)
+6. A world. 15x15, but allowing floating point. 
 7. Algorithm: An evolutionary loop for 51 generations. 
-    0. For first generation, randomly generate population of 500 lions. 
+    0. For first generation, randomly generate population of 500 lions; a list. 
     1.  For future generation, create new generation:
-        * Crossover
+        * get population of Crossover proportion x 2 + mutation proportion for parents
+        * Crossover x.9
         * Mutation
     2. Evaluation: for all prides of lions. This is for 1 generation. 
         1. For five steps: run simulation
@@ -139,6 +144,13 @@ We are going to evaluate a pride  that consists of four separate lions, which we
                 5. early end if nearest < 1
             2. return fitness: nearest -1 if nearest > 1 else 0 
         2. Return average of five simulations. This is the fitness score of that pride. 
-    3. After 51 generations, return the final fitness. 
+        3. cache the best pride, as well as context and positions for its run on a new set (for image)
+    3. After 51 generations, we should have:
+        * np array for 
+            * best fitness by gen
+            * avg fitness by ge
+        * list of the best prides for each gen
+        * 
+
 
 

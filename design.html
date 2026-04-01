@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Fitz Koch">
+<meta name="dcterms.date" content="2026-03-31">
+<meta name="description" content="Working through design and trial/error on reimplementation of classic Lions chasing Gazelle project">
+
+<title>Lions vs Gazelle</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="design_files/libs/clipboard/clipboard.min.js"></script>
+<script src="design_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="design_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="design_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="design_files/libs/quarto-html/popper.min.js"></script>
+<script src="design_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="design_files/libs/quarto-html/anchor.min.js"></script>
+<link href="design_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="design_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="design_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="design_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="design_files/libs/bootstrap/bootstrap-4d7f0bce1131f3e5f9547cd857cfbfc8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-full toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#overview-goals" id="toc-overview-goals" class="nav-link active" data-scroll-target="#overview-goals">Overview (Goals)</a></li>
+  <li><a href="#design" id="toc-design" class="nav-link" data-scroll-target="#design">Design</a>
+  <ul class="collapse">
+  <li><a href="#operators" id="toc-operators" class="nav-link" data-scroll-target="#operators">Operators</a></li>
+  <li><a href="#breeding" id="toc-breeding" class="nav-link" data-scroll-target="#breeding">Breeding</a></li>
+  <li><a href="#world-and-animals" id="toc-world-and-animals" class="nav-link" data-scroll-target="#world-and-animals">World and Animals</a></li>
+  <li><a href="#math-summary" id="toc-math-summary" class="nav-link" data-scroll-target="#math-summary">Math Summary:</a></li>
+  <li><a href="#genetic-programming" id="toc-genetic-programming" class="nav-link" data-scroll-target="#genetic-programming">Genetic Programming</a></li>
+  <li><a href="#testing" id="toc-testing" class="nav-link" data-scroll-target="#testing">Testing</a></li>
+  </ul></li>
+  <li><a href="#code-design" id="toc-code-design" class="nav-link" data-scroll-target="#code-design">Code Design</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="design.ipynb" download="design.ipynb"><i class="bi bi-journal-code"></i>Jupyter</a></li></ul></div></nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content column-page-right" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Lions vs Gazelle</h1>
+</div>
+
+<div>
+  <div class="description">
+    Working through design and trial/error on reimplementation of classic Lions chasing Gazelle project
+  </div>
+</div>
+
+
+<div class="quarto-title-meta column-page-right">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Fitz Koch </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">March 31, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview-goals" class="level1">
+<h1>Overview (Goals)</h1>
+<ul>
+<li>Reimplementation of <span class="citation" data-cites="lukeEvolvingTeamworkCoordination1996">Luke and Spector (<a href="#ref-lukeEvolvingTeamworkCoordination1996" role="doc-biblioref">1996</a>)</span></li>
+<li>Add visualization</li>
+<li>Potential Extension</li>
+</ul>
+</section>
+<section id="design" class="level1">
+<h1>Design</h1>
+<section id="operators" class="level2">
+<h2 class="anchored" data-anchor-id="operators">Operators</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 3%">
+<col style="width: 1%">
+<col style="width: 1%">
+<col style="width: 92%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Args</th>
+<th>Group</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>last</td>
+<td>0</td>
+<td>0</td>
+<td>One unit in last direction. First move: rand</td>
+</tr>
+<tr class="even">
+<td>rand-dir</td>
+<td>0</td>
+<td>0</td>
+<td>random normal vec</td>
+</tr>
+<tr class="odd">
+<td>gazelle</td>
+<td>0</td>
+<td>0</td>
+<td>smallest vector lion to gaz</td>
+</tr>
+<tr class="even">
+<td>+</td>
+<td>2</td>
+<td>0</td>
+<td>add two ve</td>
+</tr>
+<tr class="odd">
+<td>-</td>
+<td>1</td>
+<td>0</td>
+<td>negate</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\times 2\)</span></td>
+<td>1</td>
+<td>0</td>
+<td>multiply magnitude of vect</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(/ 2\)</span></td>
+<td>1</td>
+<td>0</td>
+<td>divide magnitude of vec</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\to 90\)</span></td>
+<td>1</td>
+<td>0</td>
+<td>rotate vector clockwise 9</td>
+</tr>
+<tr class="odd">
+<td>rand</td>
+<td>1</td>
+<td>0</td>
+<td>given a vector, return vector in the same direction, whose magnitude varies between 0 and original</td>
+</tr>
+<tr class="even">
+<td>inv</td>
+<td>1</td>
+<td>0</td>
+<td>invert magnitude…: start with <span class="math inline">\(\left\lVert \ \text{max}\ \right\rVert = \sqrt{ \left( \frac{w}{2} \right)^{2} +\left(  \frac{h}{2} \right)^{2}}\)</span> and then return <span class="math inline">\(\frac{v}{\lVert v \rVert} =(\lVert \ \text{max}\ \rVert - \lVert v \rVert)\)</span>.</td>
+</tr>
+<tr class="odd">
+<td>ifdot</td>
+<td>4</td>
+<td>0</td>
+<td>Evaluate the first and second arguments. If their dot product is greater than or equal to 0, then evaluate and return the third argument, else evaluate and return the fourth argument.</td>
+</tr>
+<tr class="even">
+<td>if&gt;=</td>
+<td>4</td>
+<td>0</td>
+<td>Evaluate the first and second arguments. If the magnitude of the first argument is greater than or equal to the magnitude of the second argument, then evaluate and return the third argument, else evaluate and return the fourth argument.</td>
+</tr>
+<tr class="odd">
+<td>nearest</td>
+<td>0</td>
+<td>1</td>
+<td>vector from lion nearest gazelle to gazelle</td>
+</tr>
+<tr class="even">
+<td>lion</td>
+<td>0</td>
+<td>1</td>
+<td>vector from lion to nearest neighbor</td>
+</tr>
+<tr class="odd">
+<td>rlion</td>
+<td>0</td>
+<td>1</td>
+<td>vector from lion to first lino encountered in clockwise sweep. sweep begins in the direction lion moved last. all minimum are gathered, then find first.</td>
+</tr>
+<tr class="even">
+<td>llion</td>
+<td>0</td>
+<td>1</td>
+<td>vector from lion to first lino encountered in counterclockwise sweep. sweep begins in the direction lion moved last. all minimum are gathered, then find first.<br></td>
+</tr>
+<tr class="odd">
+<td>lion-<span class="math inline">\(n\)</span></td>
+<td>0</td>
+<td>2</td>
+<td>A vector from the lion to lion <span class="math inline">\(n\)</span></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="breeding" class="level2">
+<h2 class="anchored" data-anchor-id="breeding">Breeding</h2>
+<ul>
+<li>clones (same in every brain)</li>
+<li>free breeding (any member to breed with any member)</li>
+<li>restricted: only lion <span class="math inline">\(i\)</span> with lion <span class="math inline">\(i\)</span>, etc.</li>
+</ul>
+</section>
+<section id="world-and-animals" class="level2">
+<h2 class="anchored" data-anchor-id="world-and-animals">World and Animals</h2>
+<ul>
+<li>toroidal, <span class="math inline">\(n \times n\)</span>, with <span class="math inline">\(n=15\)</span>; must remember wrapping</li>
+<li>discrete updates</li>
+<li>Gazelle:
+<ul>
+<li>randomly placed</li>
+<li>3 units per turn</li>
+<li>follows:</li>
+</ul></li>
+</ul>
+<p><span class="math display">\[
+- \sum_{v \in V} \frac{v}{\lVert v \rVert } (\lVert max \rVert -\lVert v \rVert )
+\]</span></p>
+<ul>
+<li>Lion
+<ul>
+<li>randomly placed</li>
+<li>1 unit per turn</li>
+<li>goal: get one lion with 1 unit of the gazelle</li>
+</ul></li>
+</ul>
+</section>
+<section id="math-summary" class="level2">
+<h2 class="anchored" data-anchor-id="math-summary">Math Summary:</h2>
+<ul>
+<li><span class="math inline">\(\left\lVert \text{max}\right\rVert = \sqrt{ \left( \frac{w}{2} \right)^{2} +\left(  \frac{h}{2} \right)^{2}}\)</span></li>
+<li>gazelle movement: <span class="math inline">\(-\sum_{v \in V} \frac{v}{\lVert v \rVert } (\lVert \text{max} \rVert -\lVert v \rVert )\)</span></li>
+</ul>
+</section>
+<section id="genetic-programming" class="level2">
+<h2 class="anchored" data-anchor-id="genetic-programming">Genetic Programming</h2>
+<p>Though the paper doesn’t really discuss it, at this point genetic programming refers to a system where internal nodes are functions and operators, and leaf nodes are variables/constants. They use <code>lil-gp</code>, a C codebase or library or whatever you call them, but I plan on just reimplementing in python. Basically, we build a tree,</p>
+<ul>
+<li>population 500 (of lions/trees? or of prides?)
+<ul>
+<li>decided <strong>prides</strong></li>
+</ul></li>
+<li>maximum tree size: 70</li>
+<li>maximum depth: 17</li>
+<li>crossover (90%)</li>
+<li>reproduction (10%)</li>
+<li>selection: unclear. Claude thinks probably tournament selection, ? But maybe more research required.</li>
+</ul>
+</section>
+<section id="testing" class="level2">
+<h2 class="anchored" data-anchor-id="testing">Testing</h2>
+<ul>
+<li>100 runs for each combo of sensing and breeding, 100 for each control</li>
+<li>fitness of groups based on average of 5 simulation trials</li>
+<li>15 steps per sim</li>
+<li>0 length vector =&gt; random movement of one unit.</li>
+<li>51 generations</li>
+<li>population of 500</li>
+<li><strong>Fitness</strong>: 0 if closest lion within 1 unit, else distance minus 1. minimization.</li>
+</ul>
+</section>
+</section>
+<section id="code-design" class="level1">
+<h1>Code Design</h1>
+<p>We are going to evaluate a pride that consists of four separate lions, which we can represent as a class with four separate tree classes. This requires:</p>
+<ol start="0" type="1">
+<li>Basic loop: positions -&gt; contexts -&gt; tree processing -&gt; back to positions</li>
+<li>A recursive node class
+<ul>
+<li>parent</li>
+<li>operation definition (including required number of children)</li>
+<li>children</li>
+<li>method to operate on children (recursively) and return result
+<ul>
+<li>take in context (from positions)</li>
+</ul></li>
+</ul></li>
+<li>Random tree generation:
+<ul>
+<li>use the node class to make trees that meet specifications</li>
+</ul></li>
+<li>Parent selection:
+<ul>
+<li>We need 900 parents for 450 (90%), so we need to select a parent 900 times.</li>
+<li>We do this via tournament selection, I think: take <span class="math inline">\(N\)</span> individuals, and take the best one as a default. Seems like standard <span class="math inline">\(N=7\)</span>.</li>
+</ul></li>
+<li>Crossover
+<ul>
+<li>The individuals to crossover are selected from teams according to the following rules:
+<ul>
+<li>Cloning: all individuals in a team are the same; doesn’t matter.</li>
+<li>Free Breeding: all individuals in a team are different, but we pick them at random</li>
+<li>Restricted Breeding: we only select individuals that are the same lion number.</li>
+</ul></li>
+<li>crossover itself:
+<ul>
+<li>swap subtrees</li>
+<li>don’t allow going over 17 depth or 70 size (if so, reject, try again)</li>
+</ul></li>
+</ul></li>
+<li>Mutation: pick random node, replace with a new random subtree (that doesn’t go over length)</li>
+<li>A world. 15x15, but allowing floating point.</li>
+<li>Algorithm: An evolutionary loop for 51 generations.
+<ol start="0" type="1">
+<li>For first generation, randomly generate population of 500 lions; a list.</li>
+<li>For future generation, create new generation:
+<ul>
+<li>get population of Crossover proportion x 2 + mutation proportion for parents</li>
+<li>Crossover x.9</li>
+<li>Mutation</li>
+</ul></li>
+<li>Evaluation: for all prides of lions. This is for 1 generation.
+<ol type="1">
+<li>For five steps: run simulation
+<ol start="0" type="1">
+<li>randomly place all animals.</li>
+<li>loop for 15 steps:
+<ol type="1">
+<li>pass in sensor values (position (x,y) of each individual)</li>
+<li>generate contexts from positions (nearest lion, etc)</li>
+<li>gazelle moves according to <span class="math inline">\(\sum_{v \in V} \frac{v}{\lVert v \rVert } (\lVert \text{max} \rVert -\lVert v \rVert )\)</span></li>
+<li>each lion moves by evaluating its ctx via its tree</li>
+<li>early end if nearest &lt; 1</li>
+</ol></li>
+<li>return fitness: nearest -1 if nearest &gt; 1 else 0</li>
+</ol></li>
+<li>Return average of five simulations. This is the fitness score of that pride.</li>
+<li>cache the best pride, as well as context and positions for its run on a new set (for image)</li>
+</ol></li>
+<li>After 51 generations, we should have:
+<ul>
+<li>np array for
+<ul>
+<li>best fitness by gen</li>
+<li>avg fitness by ge</li>
+</ul></li>
+<li>list of the best prides for each gen</li>
+<li></li>
+</ul></li>
+</ol></li>
+</ol>
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-lukeEvolvingTeamworkCoordination1996" class="csl-entry" role="listitem">
+Luke, Sean, and Lee Spector. 1996. <span>“Evolving Teamwork and Coordination with Genetic Programming.”</span> In <em>Proceedings of the 1st Annual Conference on Genetic Programming</em>, 150–56. Cambridge, MA, USA: MIT Press.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
