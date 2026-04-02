@@ -28,6 +28,13 @@
     "text": "Reimplementation of Luke and Spector (1996)\nAdd visualization\nPotential Extension"
   },
   {
+    "objectID": "design.html#overview",
+    "href": "design.html#overview",
+    "title": "Lions vs Gazelle",
+    "section": "Overview",
+    "text": "Overview\nThere are four lions chasing a gazelle across a toroidal serengeti. Every turn the gazelle moves 3 units according to a set pattern, and then the lions move 1 unit according to an evolved vector operation tree. Both can move in any direction. If the lions get within one unit of the gazelle at any step, they catch it, and have a fitness loss of zero. If they don’t, then their fitness is one minus their closest position at the end of the simulation.\nThe point of this is to study the emergence of coordination without communication, as the lions can’t actually talk to one another."
+  },
+  {
     "objectID": "design.html#operators",
     "href": "design.html#operators",
     "title": "Lions vs Gazelle",

@@ -1,7 +1,7 @@
 ---
 title: "Results"
 author: Fitz Koch
-date: April 2, 2026
+date: today
 description:  Results from reimplementation
 format: 
   html:

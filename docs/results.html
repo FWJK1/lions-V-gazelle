@@ -208,14 +208,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="setup" class="level1">
 <h1>Setup</h1>
-<div id="02112d5f" class="cell" data-execution_count="1">
+<div id="02112d5f" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>sys.path.insert(<span class="dv">0</span>, <span class="st">"src"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="imports" class="level1">
 <h1>Imports</h1>
-<div id="b0be4291" class="cell" data-cache="false" data-execution_count="2">
+<div id="b0be4291" class="cell" data-cache="false" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> importlib</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> src.viz <span class="im">as</span> viz</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -234,7 +234,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Currently, I’ve only run the ‘restricted’ breeding strategy with the ‘name’ sensing information. We don’t get quite as good results as they do in the paper – they get down to <strong>1.33</strong> for name based and restricted breeding, but we only down to about <strong>1.8</strong> or so. It’s very possible this is due to some small bug or misimplementation; certainly, we can see the results in an interesting fashion.</p>
 <section id="animations" class="level2">
 <h2 class="anchored" data-anchor-id="animations">Animations</h2>
-<div id="67ac143c" class="cell" data-execution_count="3">
+<div id="67ac143c" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>viz_saved_sim(<span class="st">"data/0/2026-04-02_11-30.npy"</span>, <span class="st">"Generation 0"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 
@@ -13983,7 +13983,7 @@ BFAAAABYigAKAAAAS/1/xHU0lZiogwUAAAAASUVORK5CYII=\
 </script>
 </div>
 </div>
-<div id="3caa0e28" class="cell" data-execution_count="4">
+<div id="3caa0e28" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>viz_saved_sim(<span class="st">"data/2/2026-04-02_11-39.npy"</span>, <span class="st">"Generation 2"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 
@@ -28110,7 +28110,7 @@ UCIiIiLSKhZQIiIiItIqFlAiIiIi0ioWUCIiIiLSqv8B8IG2Oq7FagkAAAAASUVORK5CYII=\
 </script>
 </div>
 </div>
-<div id="82975104" class="cell" data-execution_count="5">
+<div id="82975104" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>viz_saved_sim(<span class="st">"data/17/2026-04-02_11-54.npy"</span>, <span class="st">"Generation 17"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 
@@ -38404,7 +38404,7 @@ AAAARhFAAQAAYBQBFAAAAEYRQAEAAGAUARQAAABG/T/mncMqOQw9+AAAAABJRU5ErkJggg==\
 </script>
 </div>
 </div>
-<div id="c3fe21e8" class="cell" data-execution_count="6">
+<div id="c3fe21e8" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>viz_saved_sim(<span class="st">"data/50/2026-04-02_12-01.npy"</span>, <span class="st">"Generation 50"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
 
@@ -48907,7 +48907,7 @@ AAAAAElFTkSuQmCC\
 <section id="results-1" class="level2">
 <h2 class="anchored" data-anchor-id="results-1">Results</h2>
 <p>Currently just testing out the code for the results. Running on extremely small datasets for now.</p>
-<div id="a2afaa92" class="cell" data-execution_count="7">
+<div id="a2afaa92" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_loss_curves(clone_data, free_data, restricted_data, title):</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    breeding_strategies <span class="op">=</span> [<span class="st">"Clone"</span>, <span class="st">"Free"</span>, <span class="st">"Restricted"</span>]</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    data_list <span class="op">=</span> [clone_data, free_data, restricted_data]</span>
@@ -48932,7 +48932,7 @@ AAAAAElFTkSuQmCC\
 <span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    plt.title(title)</span>
 <span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="67b3d6bb" class="cell" data-execution_count="8">
+<div id="67b3d6bb" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>sensing_terminals <span class="op">=</span> [<span class="st">"Name"</span>, <span class="st">"Deitic"</span>, <span class="st">"Base"</span>]</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">"results/Restricted/Name/2026-04-02_checkpoint.npz"</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>timestamp <span class="op">=</span> <span class="st">"2026-04-02"</span></span>

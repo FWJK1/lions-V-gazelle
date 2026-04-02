@@ -167,6 +167,7 @@ window.Quarto = {
   <li><a href="#overview-goals" id="toc-overview-goals" class="nav-link active" data-scroll-target="#overview-goals">Overview (Goals)</a></li>
   <li><a href="#design" id="toc-design" class="nav-link" data-scroll-target="#design">Design</a>
   <ul class="collapse">
+  <li><a href="#overview" id="toc-overview" class="nav-link" data-scroll-target="#overview">Overview</a></li>
   <li><a href="#operators" id="toc-operators" class="nav-link" data-scroll-target="#operators">Operators</a></li>
   <li><a href="#breeding" id="toc-breeding" class="nav-link" data-scroll-target="#breeding">Breeding</a></li>
   <li><a href="#world-and-animals" id="toc-world-and-animals" class="nav-link" data-scroll-target="#world-and-animals">World and Animals</a></li>
@@ -232,6 +233,11 @@ window.Quarto = {
 </section>
 <section id="design" class="level1">
 <h1>Design</h1>
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>There are four lions chasing a gazelle across a toroidal serengeti. Every turn the gazelle moves 3 units according to a set pattern, and then the lions move 1 unit according to an evolved vector operation tree. Both can move in any direction. If the lions get within one unit of the gazelle at any step, they catch it, and have a fitness loss of zero. If they don’t, then their fitness is one minus their closest position at the end of the simulation.</p>
+<p>The point of this is to study the emergence of coordination <em>without communication</em>, as the lions can’t actually talk to one another.</p>
+</section>
 <section id="operators" class="level2">
 <h2 class="anchored" data-anchor-id="operators">Operators</h2>
 <table class="caption-top table">
