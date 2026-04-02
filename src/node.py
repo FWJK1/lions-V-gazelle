@@ -9,7 +9,7 @@
 
 import random
 from dataclasses import dataclass, field
-from itertools import combinations
+from itertools import combinations, product
 from pathlib import Path
 from datetime import datetime
 from typing import Callable
@@ -76,6 +76,13 @@ class Context:
 BASE_TERMINALS = ["last", "rand-dir", "gazelle"]
 DEICTIC_TERMINALS = BASE_TERMINALS + ["nearest", "lion", "rlion", "llion"]
 NAME_TERMINALS = BASE_TERMINALS + ["lion-1", "lion-2", "lion-3", "lion-4"]
+
+TERMINAL_DICT = {
+    "Base": BASE_TERMINALS,
+    "Deitic": DEICTIC_TERMINALS,
+    "Name": NAME_TERMINALS,
+}
+
 
 INTERNALS = ["+", "-", "*2", "/2", "->90", "rand", "inv", "ifdot", "if>="]
 
@@ -306,8 +313,8 @@ def mutate(node: Node, terminals: list[str]) -> Node:
 
 class Pride:
     """A team of 4 lions. Each lion has its own GP tree.
-    For clones, all four trees are identical.
-    For free/restricted breeding, each is distinct."""
+    For Clones, all four trees are identical.
+    For Free/Restricted breeding, each is distinct."""
 
     def __init__(self, lions: list[Node]):
         assert len(lions) == 4
@@ -318,7 +325,7 @@ class Pride:
 
     @classmethod
     def random(cls, terminals: list[str], breeding_strategy: str) -> "Pride":
-        if breeding_strategy == "clone":
+        if breeding_strategy == "Clone":
             t = random_lion(terminals, root=True)
             return cls([copy_tree(t) for _ in range(4)])
         return cls([random_lion(terminals, root=True) for _ in range(4)])
@@ -351,14 +358,21 @@ def toroidal_step(positions: np.ndarray, vectors: np.ndarray) -> np.ndarray:
 
 
 class Run:
-    def __init__(self, terminals, breeding_strategy: str) -> None:
+    def __init__(self, terminal_type, breeding_strategy: str) -> None:
+        timestamp = datetime.now()
+        self.timestamp = timestamp.strftime("%Y-%m-%d")
+        print(
+            f"Starting {breeding_strategy}, {terminal_type} at {timestamp.strftime('%Y-%m-%d_%H-%M')} "
+        )
+        self.terminal_type = terminal_type
+        self.terminals = TERMINAL_DICT[terminal_type]
         self.population = [
-            Pride.random(terminals, breeding_strategy)
+            Pride.random(self.terminals, breeding_strategy)
             for _ in range(c.POPULATION_COUNT)
         ]
         self.loss = np.zeros((c.GEN_COUNT, c.POPULATION_COUNT))
         self.breeding_strategy = breeding_strategy
-        self.terminals = terminals
+        self.terminals = self.terminals
         self.best_loss = np.zeros(c.GEN_COUNT)
         self.best_pride = []
         self.avg_loss = np.zeros(c.GEN_COUNT)
@@ -381,10 +395,10 @@ class Run:
         for i in range(c.CROSSOVER_COUNT):
             i *= 2
             match self.breeding_strategy:
-                case "free":
+                case "Free":
                     j = random.choice([0, 1, 2, 3])
                     k = random.choice([0, 1, 2, 3])
-                case "restricted":
+                case "Restricted":
                     j = k = random.choice([0, 1, 2, 3])
                 case _:
                     j = k = 0
@@ -392,7 +406,7 @@ class Run:
             node_a = child.lions[j]
             node_b = parents[i + 1].lions[k]
             child.lions[j] = crossover(node_a, node_b)
-            if self.breeding_strategy == "clone":
+            if self.breeding_strategy == "Clone":
                 child = Pride([copy_tree(child.lions[0]) for _ in range(4)])
             children.append(child)
 
@@ -414,20 +428,20 @@ class Run:
                 caught_count += count
                 self.loss[gen, idx] = loss
             print(
-                f"Generation {gen}, caught={caught_count}, loss={np.mean(self.loss[gen, :]):.4f}"
+                f"Strat= {self.breeding_strategy}, Term={self.terminal_type}, Generation {gen}, caught={caught_count}, avg_loss={np.mean(self.loss[gen, :]):.4f}, best_loss={np.min(self.loss[gen, :]):.4f}"
             )
 
             ## storage
             best_pride_idx = np.argmin(self.loss[gen])
             best_pride = self.population[best_pride_idx]
-            print(repr(best_pride))
+            # print(repr(best_pride))
             self.best_pride.append(best_pride)
             self.best_loss[gen] = self.loss[gen, best_pride_idx]
             self.avg_loss[gen] = np.mean(self.loss[gen])
             positions, _, _ = self.single_simulation(self.population[best_pride_idx])
             self.best_positions[gen] = positions
 
-            self.save_sim(gen)
+            self.save_best_position(gen)
 
             ## modification
             parents = self.select_parents(gen)
@@ -469,13 +483,27 @@ class Run:
                     return positions, ctxs, True
         return positions, ctxs, False
 
-    def save_sim(self, idx, save_path="data"):
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        out_dir = Path(save_path) / str(idx)
+    def save_best_position(self, idx, save_path="position_data"):
+        out_dir = (
+            Path(save_path) / self.terminal_type / self.breeding_strategy / str(idx)
+        )
         out_dir.mkdir(parents=True, exist_ok=True)
-        path = out_dir / f"{timestamp}.npy"
+        path = out_dir / f"{self.timestamp}.npy"
         np.save(path, self.best_positions[idx])
         return path
+
+    def save_run_results(self, save_path="results"):
+        out_dir = Path(save_path) / self.terminal_type / self.breeding_strategy
+        out_dir.mkdir(parents=True, exist_ok=True)
+        path = out_dir / f"{self.timestamp}.npy"
+        np.savez(
+            out_dir / f"{self.timestamp}_checkpoint.npz",
+            best_loss=self.best_loss,
+            avg_loss=self.avg_loss,
+        )
+        print(
+            f"Saved average and best loss to {out_dir / f'{self.timestamp}_checkpoint.npz'} "
+        )
 
 
 def random_positions():
@@ -490,5 +518,9 @@ def random_positions():
 
 
 if __name__ == "__main__":
-    r = Run(NAME_TERMINALS, "restricted")
-    r.run_gens()
+    sensing_terminals = ["Name", "Deitic", "Base"]
+    breeding_strategies = ["Restricted", "Clone", "Free"]
+    for terminal, strat in product(sensing_terminals, breeding_strategies):
+        run = Run(terminal, strat)
+        run.run_gens()
+        run.save_run_results()

@@ -9,3 +9,4 @@
 *toc
 /.quarto/
 **/*.quarto_ipynb
+results/*
