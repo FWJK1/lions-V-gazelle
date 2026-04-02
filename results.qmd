@@ -83,9 +83,6 @@ def plot_loss_curves(clone_data, free_data, restricted_data, title):
     fig, axes = plt.subplots(nrows=1, ncols=2)
     avg_ax, best_ax = axes
 
-    for ax in axes:
-        ax.set(ylim=(0, 6))
-
     for strategy, data in zip(breeding_strategies, data_list):
         avg_ax.plot(range(n), data["avg_loss"], label=strategy, color=colors[strategy])
         best_ax.plot(

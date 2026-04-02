@@ -9,3 +9,4 @@
 /.quarto/
 **/*.quarto_ipynb
 results/*
+logs/*

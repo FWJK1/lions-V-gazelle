@@ -18,8 +18,7 @@ import numpy as np
 
 import constants as c
 import math_helpers as m
-from viz import viz_sim, viz_saved_sim
-
+from logging_util import set_up_logging
 
 OPERATORS: dict[str, tuple[int, Callable]] = {
     # --- Terminals (arity 0): look up pre-computed value in ctx ---
@@ -316,19 +315,20 @@ class Pride:
     For Clones, all four trees are identical.
     For Free/Restricted breeding, each is distinct."""
 
-    def __init__(self, lions: list[Node]):
+    def __init__(self, lions: list[Node], logger):
         assert len(lions) == 4
+        self.logger = logger
         self.lions = lions
 
     def __repr__(self) -> str:
         return "\n".join([repr(lion) for lion in self.lions])
 
     @classmethod
-    def random(cls, terminals: list[str], breeding_strategy: str) -> "Pride":
+    def random(cls, terminals: list[str], breeding_strategy: str, logger) -> "Pride":
         if breeding_strategy == "Clone":
             t = random_lion(terminals, root=True)
-            return cls([copy_tree(t) for _ in range(4)])
-        return cls([random_lion(terminals, root=True) for _ in range(4)])
+            return cls([copy_tree(t) for _ in range(4)], logger)
+        return cls([random_lion(terminals, root=True) for _ in range(4)], logger)
 
     def get_lion_vectors(self, ctxs: list[Context]) -> np.ndarray:
         """ctxs[i] is the sensor context for lion i. Returns movement vectors."""
@@ -337,7 +337,7 @@ class Pride:
         )
         norms = np.linalg.norm(vectors, axis=1, keepdims=True)
         if np.any(norms == 0):
-            print(norms)
+            self.logger.debug(norms)
         return vectors / norms
 
 
@@ -358,16 +358,20 @@ def toroidal_step(positions: np.ndarray, vectors: np.ndarray) -> np.ndarray:
 
 
 class Run:
-    def __init__(self, terminal_type, breeding_strategy: str) -> None:
+    def __init__(self, terminal_type, breeding_strategy: str, logger) -> None:
+        ## saving inputs and documenting
+        self.logger = logger
         timestamp = datetime.now()
         self.timestamp = timestamp.strftime("%Y-%m-%d")
-        print(
+        self.logger.info(
             f"Starting {breeding_strategy}, {terminal_type} at {timestamp.strftime('%Y-%m-%d_%H-%M')} "
         )
         self.terminal_type = terminal_type
         self.terminals = TERMINAL_DICT[terminal_type]
+
+        #
         self.population = [
-            Pride.random(self.terminals, breeding_strategy)
+            Pride.random(self.terminals, breeding_strategy, self.logger)
             for _ in range(c.POPULATION_COUNT)
         ]
         self.loss = np.zeros((c.GEN_COUNT, c.POPULATION_COUNT))
@@ -402,18 +406,20 @@ class Run:
                     j = k = random.choice([0, 1, 2, 3])
                 case _:
                     j = k = 0
-            child = Pride([copy_tree(lion) for lion in parents[i].lions])
+            child = Pride([copy_tree(lion) for lion in parents[i].lions], self.logger)
             node_a = child.lions[j]
             node_b = parents[i + 1].lions[k]
             child.lions[j] = crossover(node_a, node_b)
             if self.breeding_strategy == "Clone":
-                child = Pride([copy_tree(child.lions[0]) for _ in range(4)])
+                child = Pride(
+                    [copy_tree(child.lions[0]) for _ in range(4)], self.logger
+                )
             children.append(child)
 
         ## mutation
         for i in range(c.CROSSOVER_COUNT, c.POPULATION_COUNT):
             j = random.choice([0, 1, 2, 3])
-            child = Pride([copy_tree(lion) for lion in parents[i].lions])
+            child = Pride([copy_tree(lion) for lion in parents[i].lions], self.logger)
             child.lions[j] = mutate(child.lions[j], self.terminals)
             children.append(child)
 
@@ -427,14 +433,14 @@ class Run:
                 loss, count = self.run_sims(pride)
                 caught_count += count
                 self.loss[gen, idx] = loss
-            print(
+            self.logger.info(
                 f"Strat= {self.breeding_strategy}, Term={self.terminal_type}, Generation {gen}, caught={caught_count}, avg_loss={np.mean(self.loss[gen, :]):.4f}, best_loss={np.min(self.loss[gen, :]):.4f}"
             )
 
             ## storage
             best_pride_idx = np.argmin(self.loss[gen])
             best_pride = self.population[best_pride_idx]
-            # print(repr(best_pride))
+            self.logger.debug(repr(best_pride))
             self.best_pride.append(best_pride)
             self.best_loss[gen] = self.loss[gen, best_pride_idx]
             self.avg_loss[gen] = np.mean(self.loss[gen])
@@ -477,9 +483,6 @@ class Run:
                 positions[step] = toroidal_step(positions[step - 1], vectors)
                 ctxs = update_ctxs(positions[step], ctxs)
                 if ctxs[1].caught_gazelle:
-                    # print(
-                    #     f"step {step} caught: {ctxs[1].caught_gazelle}, nearest dist: {np.linalg.norm(ctxs[1].nearest)}"
-                    # )
                     return positions, ctxs, True
         return positions, ctxs, False
 
@@ -501,7 +504,7 @@ class Run:
             best_loss=self.best_loss,
             avg_loss=self.avg_loss,
         )
-        print(
+        self.logger.info(
             f"Saved average and best loss to {out_dir / f'{self.timestamp}_checkpoint.npz'} "
         )
 
@@ -520,7 +523,8 @@ def random_positions():
 if __name__ == "__main__":
     sensing_terminals = ["Name", "Deitic", "Base"]
     breeding_strategies = ["Restricted", "Clone", "Free"]
+    logger = set_up_logging()
     for terminal, strat in product(sensing_terminals, breeding_strategies):
-        run = Run(terminal, strat)
+        run = Run(terminal, strat, logger)
         run.run_gens()
         run.save_run_results()

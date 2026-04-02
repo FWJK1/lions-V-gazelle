@@ -15,9 +15,9 @@ EARLY_TERMINAL_P = 0.3
 
 
 # run count stuff
-GEN_COUNT = 51
-STEPS_PER_SIM = 15
-SIMS_PER_GEN = 5
+GEN_COUNT = 1
+STEPS_PER_SIM = 1
+SIMS_PER_GEN = 1
 
 
 # Population stuff, largely for breeding
