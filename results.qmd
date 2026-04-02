@@ -1,0 +1,56 @@
+---
+title: "Lions vs Gazelle"
+author: Fitz Koch
+date: March 31, 2026
+description:  Results from reimplementation
+format: 
+  html:
+    html-math-method: mathjax
+    fig-responsive: true
+    toc: true
+    toc-location: left
+    theme: cosmo
+    page-layout: full
+  ipynb:
+    wrap: none
+  pdf:
+    include-in-header:
+      text: |
+        \usepackage{enumitem}
+        \setlistdepth{9}
+execute: 
+  cache: true
+editor:
+    render-on-save: true
+bibliography: /home/fitsl/library/zotero/fjk_library.bib
+---
+
+# Setup
+
+```{python}
+import sys
+sys.path.insert(0, "src")
+```
+
+# Imports
+```{python}
+# | cache: false
+import importlib
+import src.viz as viz
+
+importlib.reload(viz)
+from src.viz import viz_saved_sim
+```
+
+
+```{python}
+viz_saved_sim("data/0/2026-04-02_11-30.npy", "Generation 0")
+```
+
+```{python}
+viz_saved_sim("data/2/2026-04-02_11-39.npy", "Generation 2")
+```
+
+```{python}
+viz_saved_sim("data/17/2026-04-02_11-54.npy", "Generation 17")
+```

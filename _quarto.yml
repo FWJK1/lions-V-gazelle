@@ -1,0 +1,12 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Lion Coordination"
+  navbar:
+    left:
+      - href: results.qmd
+        text: Results
+      - href: design.qmd
+        text: Design

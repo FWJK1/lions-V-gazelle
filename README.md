@@ -14,4 +14,4 @@ Luke, Sean, and Lee Spector. 1996. “Evolving Teamwork and Coordination with Ge
 # Credits
 * Original Paper: Sean Luke and Lee Spector
 * Code: Fitz Koch
-* Debugging and Advice: Claude 
+* Debugging, Advice, and almost all visualization code : Claude 

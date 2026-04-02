@@ -17,14 +17,15 @@ from typing import Callable
 import numpy as np
 
 import constants as c
-from viz import viz_sim
+import math_helpers as m
+from viz import viz_sim, viz_saved_sim
 
 
 OPERATORS: dict[str, tuple[int, Callable]] = {
     # --- Terminals (arity 0): look up pre-computed value in ctx ---
     # standard
     "last": (0, lambda ctx: ctx.last),
-    "rand-dir": (0, lambda ctx: random_unit_vector()),
+    "rand-dir": (0, lambda ctx: m.random_unit_vector()),
     "gazelle": (0, lambda ctx: ctx.gazelle),
     # deictic
     "nearest": (0, lambda ctx: ctx.nearest),  # nearest-to-gazelle lion -> gazelle
@@ -41,9 +42,9 @@ OPERATORS: dict[str, tuple[int, Callable]] = {
     "-": (1, lambda ctx, a: -a),
     "*2": (1, lambda ctx, a: a * 2),
     "/2": (1, lambda ctx, a: a / 2),
-    "->90": (1, lambda ctx, a: rotate_90(a)),
-    "rand": (1, lambda ctx, a: rand_scale(a)),
-    "inv": (1, lambda ctx, a: invert(a)),
+    "->90": (1, lambda ctx, a: m.rotate_90(a)),
+    "rand": (1, lambda ctx, a: m.rand_scale(a)),
+    "inv": (1, lambda ctx, a: m.invert(a)),
     "ifdot": (4, lambda ctx, a, b, c, d: c if np.dot(a, b) >= 0 else d),
     "if>=": (
         4,
@@ -51,95 +52,6 @@ OPERATORS: dict[str, tuple[int, Callable]] = {
     ),
 }
 # fmt: on
-
-# Terminal sets per sensing mode
-BASE_TERMINALS = ["last", "rand-dir", "gazelle"]
-DEICTIC_TERMINALS = BASE_TERMINALS + ["nearest", "lion", "rlion", "llion"]
-NAME_TERMINALS = BASE_TERMINALS + ["lion-1", "lion-2", "lion-3", "lion-4"]
-
-INTERNALS = ["+", "-", "*2", "/2", "->90", "rand", "inv", "ifdot", "if>="]
-
-
-## math helpers
-def vector_between(pos_a, pos_b):
-    return (pos_b - pos_a + c.WORLD / 2) % c.WORLD - c.WORLD / 2
-
-
-def angle_diff(angle1, angle2):
-    diff = angle1 - angle2
-    return (diff + np.pi) % (2 * np.pi) - np.pi
-
-
-def random_unit_vector() -> np.ndarray:
-    v = np.random.standard_normal(2)
-    return v / np.linalg.norm(v)
-
-
-def rotate_90(vec):
-    x, y = vec
-    return np.array([y, -x])
-
-
-def rand_scale(vec):
-    return vec * np.random.random()
-
-
-def invert(vec: np.ndarray) -> np.ndarray:
-    mag = np.linalg.norm(vec)
-    if mag == 0:
-        return np.zeros(2)
-    return (vec / mag) * (c.MAX_NORM - mag)
-
-
-class Node:
-    def __init__(self, operation: str, children: list["Node"] | None = None) -> None:
-        self.operation = operation
-        self.children = children or []
-
-    def process_inputs(self, ctx: Context) -> np.ndarray:
-        arity, func = OPERATORS[self.operation]
-        child_vals = [child.process_inputs(ctx) for child in self.children]
-
-        return func(ctx, *child_vals)
-
-    def size(self) -> int:
-        return 1 + sum(c.size() for c in self.children)
-
-    def depth(self) -> int:
-        if not self.children:
-            return 0
-        return 1 + max(c.depth() for c in self.children)
-
-    def __repr__(self) -> str:
-        if not self.children:
-            return f"{self.operation}"
-        child_vals = " ".join([c.operation for c in self.children])
-        return f"{self.operation} on {[c for c in child_vals]}"
-
-
-def random_lion(terminals, max_depth=c.MAX_DEPTH, depth=0) -> Node:
-    """build a random tree of node units; recursive, but and when called from root returns a Lion, basically
-
-    Args:
-        terminals (_type_): the terminals for this type of lion
-        max_depth (_type_, optional): how deep we can go. Defaults to c.MAX_DEPTH.
-        depth (int, optional): current depth. Defaults to 0.
-
-    Returns:
-        Node: the root of a lion tree
-    """
-    force_terminal = depth >= max_depth
-    pick_terminal = force_terminal or (
-        depth > 0 and np.random.random_sample() < c.EARLY_TERMINAL_P
-    )
-
-    if pick_terminal:
-        return Node(random.choice(terminals))
-
-    operation = random.choice(INTERNALS)
-    arity, _ = OPERATORS[operation]
-    children = [random_lion(terminals, max_depth, depth + 1) for _ in range(arity)]
-    return Node(operation, children)
 
 
 @dataclass
@@ -160,10 +72,125 @@ class Context:
     heading: np.ndarray = field(default_factory=lambda: np.array([0, 0]))
 
 
+# Terminal sets per sensing mode
+BASE_TERMINALS = ["last", "rand-dir", "gazelle"]
+DEICTIC_TERMINALS = BASE_TERMINALS + ["nearest", "lion", "rlion", "llion"]
+NAME_TERMINALS = BASE_TERMINALS + ["lion-1", "lion-2", "lion-3", "lion-4"]
+
+INTERNALS = ["+", "-", "*2", "/2", "->90", "rand", "inv", "ifdot", "if>="]
+
+
+class Node:
+    def __init__(
+        self, operation: str, children: list["Node"] | None = None, root=False
+    ) -> None:
+        self.operation = operation
+        self.children = children or []
+        self.root = root
+
+    def process_inputs(self, ctx: Context) -> np.ndarray:
+        arity, func = OPERATORS[self.operation]
+        child_vals = [child.process_inputs(ctx) for child in self.children]
+        vector = func(ctx, *child_vals)
+        if np.all(vector == 0) or not np.all(np.isfinite(vector)):
+            return m.random_unit_vector()
+        return vector
+
+    def size(self) -> int:
+        return 1 + sum(c.size() for c in self.children)
+
+    def depth(self) -> int:
+        if not self.children:
+            return 0
+        return 1 + max(c.depth() for c in self.children)
+
+    def __repr__(self) -> str:
+        if not self.children:
+            return f"{self.operation}"
+        child_vals = " ".join([c.operation for c in self.children])
+        return f"{'root' if self.root else 'node'}:  {self.operation} on {[c for c in child_vals]}"
+
+
+def random_lion(terminals, max_depth=c.MAX_DEPTH, depth=0, root=False) -> Node:
+    """build a random tree of node units; recursive, but and when called from root returns a Lion, basically
+
+    Args:
+        terminals (_type_): the terminals for this type of lion
+        max_depth (_type_, optional): how deep we can go. Defaults to c.MAX_DEPTH.
+        depth (int, optional): current depth. Defaults to 0.
+
+    Returns:
+        Node: the root of a lion tree
+    """
+    force_terminal = depth >= max_depth
+    pick_terminal = force_terminal or (
+        depth > 0 and np.random.random_sample() < c.EARLY_TERMINAL_P
+    )
+
+    if pick_terminal:
+        return Node(random.choice(terminals), root=root)
+
+    operation = random.choice(INTERNALS)
+    arity, _ = OPERATORS[operation]
+    children = [
+        random_lion(terminals, max_depth, depth + 1, root=False) for _ in range(arity)
+    ]
+    return Node(operation, children, root=root)
+
+
+def get_gazelle_vectors(positions: np.ndarray) -> tuple:
+    gazelle = positions[0]
+    vecs_to_gazelle = np.array(
+        [m.vector_between(lion, gazelle) for lion in positions[1:]]
+    )
+    dist_to_gazelle = np.linalg.norm(vecs_to_gazelle, axis=1)
+    nearest = np.argmin(dist_to_gazelle)
+    caught_gazelle = True if dist_to_gazelle[nearest] < 1 else False
+    nearest = vecs_to_gazelle[nearest]
+    return vecs_to_gazelle, dist_to_gazelle, nearest, caught_gazelle
+
+
+def update_gazelle_ctx(
+    positions: np.ndarray, previous_ctxs: list[Context]
+) -> list[Context]:
+    """generate spatial contexts for the gazelle, which is shared.
+
+    Args:
+        positions (np.ndarray): _description_
+        previous_ctxs (list[Context]): _description_
+
+    Returns:
+        list[Context]: _description_
+    """
+    vecs_to_gazelle, dist_to_gazelle, nearest, caught_gazelle = get_gazelle_vectors(
+        positions
+    )
+    ctxs = []
+    ctxs.append(None)
+    for lion_idx in range(1, 5):
+        ctx = Context(
+            last=previous_ctxs[lion_idx].last,
+            gazelle=vecs_to_gazelle[lion_idx - 1],
+            vecs_to_gazelle=vecs_to_gazelle,
+            dist_to_gazelle=dist_to_gazelle,
+            nearest=nearest,
+            caught_gazelle=caught_gazelle,
+            lion=previous_ctxs[lion_idx].lion,
+            rlion=previous_ctxs[lion_idx].rlion,
+            llion=previous_ctxs[lion_idx].llion,
+            lion1=previous_ctxs[lion_idx].lion1,
+            lion2=previous_ctxs[lion_idx].lion2,
+            lion3=previous_ctxs[lion_idx].lion3,
+            lion4=previous_ctxs[lion_idx].lion4,
+        )
+        ctxs.append(ctx)
+    return ctxs
+
+
 def update_ctxs(
     positions: np.ndarray, previous_ctxs: list[Context] | None
 ) -> list[Context]:
-    """generate spatial contexts for each lion
+    """generate spatial contexts for each lion and the gazelle
 
     Args:
         positions np.ndarray: shape (5, 2), gazelle=0, then each lion indexed by number
@@ -174,20 +201,16 @@ def update_ctxs(
         list[dict]: list of contexts, indexed by lion number (0 is a dummy for gazelle)
     """
 
-    gazelle = positions[0]
-    vecs_to_gazelle = np.array(
-        [vector_between(lion, gazelle) for lion in positions[1:]]
+    vecs_to_gazelle, dist_to_gazelle, nearest, caught_gazelle = get_gazelle_vectors(
+        positions
     )
-    dist_to_gazelle = np.linalg.norm(vecs_to_gazelle, axis=1)
-    nearest = np.argmin(dist_to_gazelle)
-    caught_gazelle = True if dist_to_gazelle[nearest] < 1 else False
-    nearest = vecs_to_gazelle[nearest]
 
+    # set defaults to zero
     norms = np.zeros((5, 5))
     angles = np.zeros((5, 5))
     vecs = np.zeros((5, 5, 2))
     for a, b in combinations([1, 2, 3, 4], 2):
-        vec = vector_between(positions[a], positions[b])
+        vec = m.vector_between(positions[a], positions[b])
         norm = np.linalg.norm(vec)
         vecs[a, b], vecs[b, a] = vec, -vec
         norms[a, b] = norms[b, a] = norm
@@ -203,12 +226,17 @@ def update_ctxs(
             if previous_ctxs
             else np.random.random_sample(2) * np.array([c.WIDTH, c.HEIGHT])
         )
-        closest_lion = vecs[lion_idx, 1 + np.argmin(norms[lion_idx, 1:])]
+        other_idxs = [other for other in range(1, 5) if other != lion_idx]
+        closest_lion = vecs[
+            lion_idx, other_idxs[np.argmin(norms[lion_idx, other_idxs])]
+        ]
 
         heading_angle = np.arctan2(last[1], last[0])
-        other_idxs = [other for other in range(1, 5) if other != lion_idx]
         rel_angles = np.array(
-            [angle_diff(angles[lion_idx, other], heading_angle) for other in other_idxs]
+            [
+                m.angle_diff(angles[lion_idx, other], heading_angle)
+                for other in other_idxs
+            ]
         )
         rlion = vecs[lion_idx, other_idxs[np.argmin(rel_angles)]]
         llion = vecs[lion_idx, other_idxs[np.argmax(rel_angles)]]
@@ -223,10 +251,10 @@ def update_ctxs(
             lion=closest_lion,
             rlion=rlion,
             llion=llion,
-            lion1=positions[1],
-            lion2=positions[2],
-            lion3=positions[3],
-            lion4=positions[4],
+            lion1=vecs[lion_idx, 1],
+            lion2=vecs[lion_idx, 2],
+            lion3=vecs[lion_idx, 3],
+            lion4=vecs[lion_idx, 4],
         )
         ctxs.append(ctx)
 
@@ -285,12 +313,15 @@ class Pride:
         assert len(lions) == 4
         self.lions = lions
 
+    def __repr__(self) -> str:
+        return "\n".join([repr(lion) for lion in self.lions])
+
     @classmethod
     def random(cls, terminals: list[str], breeding_strategy: str) -> "Pride":
         if breeding_strategy == "clone":
-            t = random_lion(terminals)
+            t = random_lion(terminals, root=True)
             return cls([copy_tree(t) for _ in range(4)])
-        return cls([random_lion(terminals) for _ in range(4)])
+        return cls([random_lion(terminals, root=True) for _ in range(4)])
 
     def get_lion_vectors(self, ctxs: list[Context]) -> np.ndarray:
         """ctxs[i] is the sensor context for lion i. Returns movement vectors."""
@@ -298,7 +329,8 @@ class Pride:
             [lion.process_inputs(ctx) for lion, ctx in zip(self.lions, ctxs[1:])]
         )
         norms = np.linalg.norm(vectors, axis=1, keepdims=True)
-        norms = np.where(norms == 0, 1, norms)
+        if np.any(norms == 0):
+            print(norms)
         return vectors / norms
 
 
@@ -331,7 +363,7 @@ class Run:
         self.best_pride = []
         self.avg_loss = np.zeros(c.GEN_COUNT)
         self.best_positions = np.zeros(
-            (c.GEN_COUNT, c.STEPS_PER_SIM, 5, 2)
+            (c.GEN_COUNT, c.STEPS_PER_SIM * 2, 5, 2)
         )  # [gen, steps, agents, xy]
 
     def select_parents(self, gen):
@@ -384,21 +416,28 @@ class Run:
             print(
                 f"Generation {gen}, caught={caught_count}, loss={np.mean(self.loss[gen, :]):.4f}"
             )
+
+            ## storage
+            best_pride_idx = np.argmin(self.loss[gen])
+            best_pride = self.population[best_pride_idx]
+            print(repr(best_pride))
+            self.best_pride.append(best_pride)
+            self.best_loss[gen] = self.loss[gen, best_pride_idx]
+            self.avg_loss[gen] = np.mean(self.loss[gen])
+            positions, _, _ = self.single_simulation(self.population[best_pride_idx])
+            self.best_positions[gen] = positions
+
+            self.save_sim(gen)
+
+            ## modification
             parents = self.select_parents(gen)
             self.population = self.breed(parents)
-            best_pride = np.argmin(self.loss[gen])
-
-            self.best_pride.append(self.population[best_pride])
-            self.best_loss[gen] = self.loss[gen, best_pride]
-            self.avg_loss[gen] = np.mean(self.loss[gen])
-            positions, ctxs, _ = self.single_simulation(self.population[best_pride])
-            self.best_positions[gen] = positions
 
     def run_sims(self, pride: Pride):
         loss = 0
         caught_count = 0
         for _ in range(c.SIMS_PER_GEN):
-            positions, ctxs, caught = self.single_simulation(pride)
+            _, ctxs, caught = self.single_simulation(pride)
             if caught:
                 caught_count += 1
             else:
@@ -406,27 +445,33 @@ class Run:
         return loss / c.SIMS_PER_GEN, caught_count
 
     def single_simulation(self, pride: Pride) -> tuple[np.ndarray, list[Context], bool]:
-        positions = np.zeros(shape=(c.STEPS_PER_SIM, 5, 2))
+        positions = np.zeros(shape=(c.STEPS_PER_SIM * 2, 5, 2))
         positions[0] = random_positions()
         ctxs = update_ctxs(positions[0], None)
-        for step in range(1, c.STEPS_PER_SIM):
-            lion_vecs = pride.get_lion_vectors(ctxs)
-            for i, vec in enumerate(lion_vecs):
-                ctxs[i + 1].heading = vec
-            gazelle_vec = get_gazelle_vector(ctxs)
-            vectors = np.array([gazelle_vec, *lion_vecs])
-            positions[step] = toroidal_step(positions[step - 1], vectors)
-            ctxs = update_ctxs(positions[step], ctxs)
-            if ctxs[1].caught_gazelle:
-                # print(
-                #     f"step {step} caught: {ctxs[1].caught_gazelle}, nearest dist: {np.linalg.norm(ctxs[1].nearest)}"
-                # )
-                return positions, ctxs, True
+        for step in range(1, c.STEPS_PER_SIM * 2):
+            if step % 2:
+                vectors = np.zeros((5, 2))
+                vectors[0] = get_gazelle_vector(ctxs)
+                positions[step] = toroidal_step(positions[step - 1], vectors)
+                ctxs = update_gazelle_ctx(positions[step], ctxs)
+
+            else:
+                lion_vecs = pride.get_lion_vectors(ctxs)
+                for i, vec in enumerate(lion_vecs):
+                    ctxs[i + 1].heading = vec
+                vectors = np.array([np.zeros(2), *lion_vecs])
+                positions[step] = toroidal_step(positions[step - 1], vectors)
+                ctxs = update_ctxs(positions[step], ctxs)
+                if ctxs[1].caught_gazelle:
+                    # print(
+                    #     f"step {step} caught: {ctxs[1].caught_gazelle}, nearest dist: {np.linalg.norm(ctxs[1].nearest)}"
+                    # )
+                    return positions, ctxs, True
         return positions, ctxs, False
 
-    def save_sim(self, idx, title="", save_path="data"):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_dir = Path(save_path) / title / str(idx)
+    def save_sim(self, idx, save_path="data"):
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        out_dir = Path(save_path) / str(idx)
         out_dir.mkdir(parents=True, exist_ok=True)
         path = out_dir / f"{timestamp}.npy"
         np.save(path, self.best_positions[idx])
@@ -436,7 +481,10 @@ class Run:
 def random_positions():
     while True:
         positions = np.random.random_sample(size=(5, 2)) * np.array([c.WIDTH, c.HEIGHT])
-        dists = [np.linalg.norm(positions[i + 1] - positions[0]) for i in range(4)]
+        dists = [
+            np.linalg.norm(m.vector_between(positions[i + 1], positions[0]))
+            for i in range(4)
+        ]
         if min(dists) > 1:
             return positions
 
@@ -444,7 +492,3 @@ def random_positions():
 if __name__ == "__main__":
     r = Run(NAME_TERMINALS, "restricted")
     r.run_gens()
-    p1 = r.save_sim(idx=0)
-    p2 = r.save_sim(idx=c.GEN_COUNT - 1)
-    viz_sim(p1, title="og")
-    viz_sim(p2, title="final")
