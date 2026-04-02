@@ -381,7 +381,7 @@ class Run:
         self.best_pride = []
         self.avg_loss = np.zeros(c.GEN_COUNT)
         self.best_positions = np.zeros(
-            (c.GEN_COUNT, c.STEPS_PER_SIM * 2, 5, 2)
+            (c.GEN_COUNT, c.STEPS_PER_SIM * 2 + 1, 5, 2)
         )  # [gen, steps, agents, xy]
 
     def select_parents(self, gen):
@@ -421,6 +421,10 @@ class Run:
             j = random.choice([0, 1, 2, 3])
             child = Pride([copy_tree(lion) for lion in parents[i].lions], self.logger)
             child.lions[j] = mutate(child.lions[j], self.terminals)
+            if self.breeding_strategy == "Clone":
+                child = Pride(
+                    [copy_tree(child.lions[j]) for _ in range(4)], self.logger
+                )
             children.append(child)
 
         assert len(children) == c.POPULATION_COUNT
@@ -465,10 +469,10 @@ class Run:
         return loss / c.SIMS_PER_GEN, caught_count
 
     def single_simulation(self, pride: Pride) -> tuple[np.ndarray, list[Context], bool]:
-        positions = np.zeros(shape=(c.STEPS_PER_SIM * 2, 5, 2))
+        positions = np.zeros(shape=(c.STEPS_PER_SIM * 2 + 1, 5, 2))
         positions[0] = random_positions()
         ctxs = update_ctxs(positions[0], None)
-        for step in range(1, c.STEPS_PER_SIM * 2):
+        for step in range(1, c.STEPS_PER_SIM * 2 + 1):
             if step % 2:
                 vectors = np.zeros((5, 2))
                 vectors[0] = get_gazelle_vector(ctxs)
