@@ -2,7 +2,7 @@
 
 # Evolving Teamwork and Coordination with Genetic Programming (REDUX)
 * This is a reimplementation of a previous paper, below. This code adds visualization and updates to Python, with a potential to extend. 
-* see any of the `design.ext` files for an overview of the paper, areas of potential confusion, and a rough overview of my implementation. IMO the .html is best. 
+* Go to the [Pages](https://fwjk1.github.io/lions-V-gazelle/results.html) to see the design and results pages. 
 * principal code is currently in `node.py`
 
 
