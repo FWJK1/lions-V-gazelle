@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --time=12:00:00
+#SBATCH --time=36:00:00
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=fkeenank@uvm.edu
 #SBATCH --output=/gpfs1/home/f/k/fkeenank/logs/lions-slurm-%j.out
@@ -20,6 +20,6 @@ my_job_header
 echo "Python: $(python --version) | Env: $CONDA_DEFAULT_ENV | Start: $(date)"
 
 cd /gpfs1/home/f/k/fkeenank/lions-V-gazelle
-python src/main.py --title "reproduction_only"
+python src/main.py --title "zero-vec-update"
 
 echo "End: $(date)"

@@ -99,8 +99,8 @@ class Node:
         arity, func = OPERATORS[self.operation]
         child_vals = [child.process_inputs(ctx) for child in self.children]
         vector = func(ctx, *child_vals)
-        if np.all(vector == 0) or not np.all(np.isfinite(vector)):
-            return m.random_unit_vector()
+        if not np.all(np.isfinite(vector)):
+            return np.zeros(2)
         return vector
 
     def size(self) -> int:
@@ -337,8 +337,11 @@ class Pride:
             [lion.process_inputs(ctx) for lion, ctx in zip(self.lions, ctxs[1:])]
         )
         norms = np.linalg.norm(vectors, axis=1, keepdims=True)
-        if np.any(norms == 0):
-            self.logger.debug(norms)
+        zero_mask = (norms == 0).flatten()
+        if np.any(zero_mask):
+            for i in np.where(zero_mask)[0]:
+                vectors[i] = m.random_unit_vector()
+            norms = np.linalg.norm(vectors, axis=1, keepdims=True)
         return vectors / norms
 
 
@@ -470,14 +473,16 @@ class Run:
     def save_best_positions(self, save_path="position_data"):
         out_dir = Path(save_path) / self.terminal_type / self.breeding_strategy
         out_dir.mkdir(parents=True, exist_ok=True)
-        path = out_dir / f"{self.title}_{self.timestamp}.npy"
+        suffix = self.title if self.title else self.timestamp
+        path = out_dir / f"{suffix}.npy"
         np.save(path, self.best_positions)
         return path
 
     def save_run_results(self, save_path="results"):
         out_dir = Path(save_path) / self.terminal_type / self.breeding_strategy
         out_dir.mkdir(parents=True, exist_ok=True)
-        save_path = out_dir / f"{self.title}_{self.timestamp}_checkpoint.npz"
+        suffix = self.title if self.title else self.timestamp
+        save_path = out_dir / f"{suffix}_checkpoint.npz"
         np.savez(
             save_path,
             best_loss=self.best_loss,

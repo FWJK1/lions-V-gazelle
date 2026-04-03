@@ -134,6 +134,8 @@ We are going to evaluate a pride that consists of four separate lions, which we 
       - Restricted Breeding: only lion $i$ with lion $i$.
    - Swap subtrees; reject if result exceeds depth 17 or size 70.
 5. Mutation: pick random node, replace with a new random subtree.
+   - weirdly, somehow, I just made this up. they say reproduction, and I just missed this. 
+   - reproduction, we just take the best 10%. 
 6. A world: 15x15, floating point, toroidal.
 7. Algorithm: evolutionary loop for 51 generations.
    - First generation: randomly generate 500 prides.
