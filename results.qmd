@@ -57,7 +57,14 @@ from src.viz import viz_sim
 
 
 # Results
-Currently, I've only run the 'restricted' breeding strategy with the 'name' sensing information. We don't get quite as good results as they do in the paper -- they get down to **1.33** for name based and restricted breeding, but we only down to about **1.8** or so. This is almost certainly due to some bug, incorrect implementation, or unexpected side-effect or detail of the`lil-gp` paradigm, which I know basically nothing about. 
+Currently, I've only run the 'restricted' breeding strategy with the 'name' sensing information. We don't get quite as good results as they do in the paper :
+
+* generally, our **average** results are worse, but our **best** results are far better. 
+* clone-name does far better in our case 
+* in fact, generally, there doesn't seem to be all that much separating the different categories in performance or in final animations.
+* I only ran the first 35 generations, as that's where the real differentiation seemed to happen in the original experiment, so it could be that. 
+
+This is almost certainly due to some bug, incorrect implementation, or unexpected side-effect or detail of the`lil-gp` paradigm. My strongest suspicion is that they did something more 'generous' that having a 30% of an 'early termination' for each node; maybe something more like 10%. So I'm running that to test it now. 
 
 Still, we can certainly see the results in an interesting fashion. 
 
@@ -80,8 +87,7 @@ for terminal, strategy in product(terminals, strategies):
 ```
 
 
-## Results
-
+## Loss Curves 
 
 ```{python}
 def plot_loss_curves(clone_data, free_data, restricted_data, title):
@@ -124,4 +130,4 @@ for terminal in sensing_terminals:
     plot_loss_curves(clone_data, free_data, restricted_data, title=terminal)
 ``` 
 
-The results definitely don't agree with those in the published paper -- lions catch much more frequently, it seems, yet the average loss does not go as low. In addition, there is not nearly as much differentiation between the different breeding strategies and terminals as in their results. I suspect this is something to do with the details of the `name` terminals, though I'm not totally sure exactly what it is, and Claude has not been able to figure it out either. 
+Again, the results definitely don't agree with those in the published paper -- lions catch much more frequently, it seems, yet the average loss does not go as low. In addition, there is not nearly as much differentiation between the different breeding strategies and terminals as in their results. I suspect this is something to do with the details of the `name` terminals, though I'm not totally sure exactly what it is, and Claude has not been able to figure it out either. 

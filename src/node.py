@@ -112,10 +112,16 @@ class Node:
         return 1 + max(c.depth() for c in self.children)
 
     def __repr__(self) -> str:
+        return self._fmt()
+
+    def _fmt(self, indent: int = 0) -> str:
+        prefix = "  " * indent
         if not self.children:
-            return f"{self.operation}"
-        child_vals = " ".join([c.operation for c in self.children])
-        return f"{'root' if self.root else 'node'}:  {self.operation} on {[c for c in child_vals]}"
+            return f"{prefix}{self.operation}"
+        lines = [f"{prefix}{self.operation}"]
+        for child in self.children:
+            lines.append(child._fmt(indent + 1))
+        return "\n".join(lines)
 
 
 def random_lion(terminals, max_depth=c.MAX_DEPTH, depth=0, root=False) -> Node:
@@ -290,14 +296,16 @@ def overwrite_node(target: Node, source: Node) -> None:
     target.children = source.children
 
 
-def crossover(lion_a: Node, lion_b: Node) -> Node:
+def crossover(lion_a: Node, lion_b: Node, count=0) -> Node:
     """Swap a random subtree from lion_b into a random point in a copy of lion_a.
-    Falls back to lion_a copy if result exceeds MAX_SIZE."""
+    Recurses if result exceeds MAX_SIZE."""
     child = copy_tree(lion_a)
     point_a = random.choice(_all_nodes(child))
     subtree_b = copy_tree(random.choice(_all_nodes(lion_b)))
     overwrite_node(point_a, subtree_b)
     if child.size() > c.MAX_SIZE:
+        if count < 5:
+            return crossover(lion_a, lion_b, count + 1)
         return copy_tree(lion_a)
     return child
 
@@ -498,7 +506,7 @@ def random_positions():
             np.linalg.norm(m.vector_between(positions[i + 1], positions[0]))
             for i in range(4)
         ]
-        if min(dists) > 1:
+        if min(dists) > c.INITIAL_DIST:
             return positions
 
 

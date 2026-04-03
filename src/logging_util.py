@@ -19,7 +19,7 @@ def set_up_logging(
     timestamp = datetime.now().strftime("%d-%m%-Y_%H:%M")
     out_dir = Path(save_path)
     out_dir.mkdir(parents=True, exist_ok=True)
-    log_file = out_dir / timestamp
+    log_file = out_dir / f"{name}_{timestamp}"
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)

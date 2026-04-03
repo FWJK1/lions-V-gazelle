@@ -6,16 +6,17 @@ HEIGHT = 15
 MAX_NORM = np.sqrt((WIDTH / 2) ** 2 + (HEIGHT / 2) ** 2)
 WORLD = np.array([WIDTH, HEIGHT], dtype=float)
 GAZELLE_STEP = 3
+INITIAL_DIST = 2
 
 
 # tree restrictions and probability
 MAX_DEPTH = 17
 MAX_SIZE = 70
-EARLY_TERMINAL_P = 0.3
+EARLY_TERMINAL_P = 0.1
 
 
 # run count stuff
-GEN_COUNT = 35
+GEN_COUNT = 51
 STEPS_PER_SIM = 15
 SIMS_PER_GEN = 5
 
