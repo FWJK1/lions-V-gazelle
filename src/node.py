@@ -14,6 +14,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import Callable
 
+from concurrent.futures import ProcessPoolExecutor
+
 import numpy as np
 
 import constants as c
@@ -431,72 +433,37 @@ class Run:
         return children
 
     def run_gens(self):
-        for gen in range(c.GEN_COUNT):
-            caught_count = 0
-            for idx, pride in enumerate(self.population):
-                loss, count = self.run_sims(pride)
-                caught_count += count
-                self.loss[gen, idx] = loss
-            self.logger.info(
-                f"Strat= {self.breeding_strategy}, Term={self.terminal_type}, Generation {gen}, caught={caught_count}, avg_loss={np.mean(self.loss[gen, :]):.4f}, best_loss={np.min(self.loss[gen, :]):.4f}"
-            )
+        with ProcessPoolExecutor() as executor:
+            for gen in range(c.GEN_COUNT):
+                caught_count = 0
+                results = list(executor.map(run_sims, self.population))
+                for idx, (loss, count) in enumerate(results):
+                    caught_count += count
+                    self.loss[gen, idx] = loss
 
-            ## storage
-            best_pride_idx = np.argmin(self.loss[gen])
-            best_pride = self.population[best_pride_idx]
-            self.logger.debug(repr(best_pride))
-            self.best_pride.append(best_pride)
-            self.best_loss[gen] = self.loss[gen, best_pride_idx]
-            self.avg_loss[gen] = np.mean(self.loss[gen])
-            positions, _, _ = self.single_simulation(self.population[best_pride_idx])
-            self.best_positions[gen] = positions
+                self.logger.info(
+                    f"Strat= {self.breeding_strategy}, Term={self.terminal_type}, Generation {gen}, caught={caught_count}, avg_loss={np.mean(self.loss[gen, :]):.4f}, best_loss={np.min(self.loss[gen, :]):.4f}"
+                )
 
-            self.save_best_position(gen)
+                ## storage
+                best_pride_idx = np.argmin(self.loss[gen])
+                best_pride = self.population[best_pride_idx]
+                self.logger.debug(repr(best_pride))
+                self.best_pride.append(best_pride)
+                self.best_loss[gen] = self.loss[gen, best_pride_idx]
+                self.avg_loss[gen] = np.mean(self.loss[gen])
+                positions, _, _ = single_simulation(self.population[best_pride_idx])
+                self.best_positions[gen] = positions
 
-            ## modification
-            parents = self.select_parents(gen)
-            self.population = self.breed(parents)
+                ## modification
+                parents = self.select_parents(gen)
+                self.population = self.breed(parents)
 
-    def run_sims(self, pride: Pride):
-        loss = 0
-        caught_count = 0
-        for _ in range(c.SIMS_PER_GEN):
-            _, ctxs, caught = self.single_simulation(pride)
-            if caught:
-                caught_count += 1
-            else:
-                loss += np.linalg.norm(ctxs[1].nearest) - 1
-        return loss / c.SIMS_PER_GEN, caught_count
-
-    def single_simulation(self, pride: Pride) -> tuple[np.ndarray, list[Context], bool]:
-        positions = np.zeros(shape=(c.STEPS_PER_SIM * 2 + 1, 5, 2))
-        positions[0] = random_positions()
-        ctxs = update_ctxs(positions[0], None)
-        for step in range(1, c.STEPS_PER_SIM * 2 + 1):
-            if step % 2:
-                vectors = np.zeros((5, 2))
-                vectors[0] = get_gazelle_vector(ctxs)
-                positions[step] = toroidal_step(positions[step - 1], vectors)
-                ctxs = update_gazelle_ctx(positions[step], ctxs)
-
-            else:
-                lion_vecs = pride.get_lion_vectors(ctxs)
-                for i, vec in enumerate(lion_vecs):
-                    ctxs[i + 1].heading = vec
-                vectors = np.array([np.zeros(2), *lion_vecs])
-                positions[step] = toroidal_step(positions[step - 1], vectors)
-                ctxs = update_ctxs(positions[step], ctxs)
-                if ctxs[1].caught_gazelle:
-                    return positions, ctxs, True
-        return positions, ctxs, False
-
-    def save_best_position(self, idx, save_path="position_data"):
-        out_dir = (
-            Path(save_path) / self.terminal_type / self.breeding_strategy / str(idx)
-        )
+    def save_best_positions(self, save_path="position_data"):
+        out_dir = Path(save_path) / self.terminal_type / self.breeding_strategy
         out_dir.mkdir(parents=True, exist_ok=True)
         path = out_dir / f"{self.timestamp}.npy"
-        np.save(path, self.best_positions[idx])
+        np.save(path, self.best_positions)
         return path
 
     def save_run_results(self, save_path="results"):
@@ -524,6 +491,57 @@ def random_positions():
             return positions
 
 
+def run_sims(pride: Pride):
+    """Run multiple simulations. Outside `Run` class so that it doesn't require pickling the whole thing to run in parallel.
+
+    Args:
+        pride (Pride): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    loss = 0
+    caught_count = 0
+    for _ in range(c.SIMS_PER_GEN):
+        _, ctxs, caught = single_simulation(pride)
+        if caught:
+            caught_count += 1
+        else:
+            loss += np.linalg.norm(ctxs[1].nearest) - 1
+    return loss / c.SIMS_PER_GEN, caught_count
+
+
+def single_simulation(pride: Pride) -> tuple[np.ndarray, list[Context], bool]:
+    """Run a single simulation. Outside `Run` class so that it doesn't require pickling the whole thing to run in parallel.
+
+    Args:
+        pride (Pride): _description_
+
+    Returns:
+        tuple[np.ndarray, list[Context], bool]: _description_
+    """
+    positions = np.zeros(shape=(c.STEPS_PER_SIM * 2 + 1, 5, 2))
+    positions[0] = random_positions()
+    ctxs = update_ctxs(positions[0], None)
+    for step in range(1, c.STEPS_PER_SIM * 2 + 1):
+        if step % 2:
+            vectors = np.zeros((5, 2))
+            vectors[0] = get_gazelle_vector(ctxs)
+            positions[step] = toroidal_step(positions[step - 1], vectors)
+            ctxs = update_gazelle_ctx(positions[step], ctxs)
+
+        else:
+            lion_vecs = pride.get_lion_vectors(ctxs)
+            for i, vec in enumerate(lion_vecs):
+                ctxs[i + 1].heading = vec
+            vectors = np.array([np.zeros(2), *lion_vecs])
+            positions[step] = toroidal_step(positions[step - 1], vectors)
+            ctxs = update_ctxs(positions[step], ctxs)
+            if ctxs[1].caught_gazelle:
+                return positions, ctxs, True
+    return positions, ctxs, False
+
+
 if __name__ == "__main__":
     sensing_terminals = ["Name", "Deitic", "Base"]
     breeding_strategies = ["Restricted", "Clone", "Free"]
@@ -531,4 +549,5 @@ if __name__ == "__main__":
     for terminal, strat in product(sensing_terminals, breeding_strategies):
         run = Run(terminal, strat, logger)
         run.run_gens()
+        run.save_best_positions()
         run.save_run_results()
