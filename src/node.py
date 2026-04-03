@@ -303,7 +303,7 @@ def crossover(lion_a: Node, lion_b: Node, count=0) -> Node:
     point_a = random.choice(_all_nodes(child))
     subtree_b = copy_tree(random.choice(_all_nodes(lion_b)))
     overwrite_node(point_a, subtree_b)
-    if child.size() > c.MAX_SIZE:
+    if child.size() > c.MAX_SIZE or child.depth() > c.MAX_DEPTH:
         if count < 5:
             return crossover(lion_a, lion_b, count + 1)
         return copy_tree(lion_a)
