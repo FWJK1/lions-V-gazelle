@@ -9,7 +9,7 @@
 
 import random
 from dataclasses import dataclass, field
-from itertools import combinations, product
+from itertools import combinations
 from pathlib import Path
 from datetime import datetime
 from typing import Callable
@@ -20,7 +20,6 @@ import numpy as np
 
 import constants as c
 import math_helpers as m
-from logging_util import set_up_logging
 
 OPERATORS: dict[str, tuple[int, Callable]] = {
     # --- Terminals (arity 0): look up pre-computed value in ctx ---
@@ -360,13 +359,16 @@ def toroidal_step(positions: np.ndarray, vectors: np.ndarray) -> np.ndarray:
 
 
 class Run:
-    def __init__(self, terminal_type, breeding_strategy: str, logger) -> None:
+    def __init__(
+        self, terminal_type, breeding_strategy: str, logger, title: str = ""
+    ) -> None:
         ## saving inputs and documenting
         self.logger = logger
+        self.title = title
         timestamp = datetime.now()
         self.timestamp = timestamp.strftime("%Y-%m-%d")
         self.logger.info(
-            f"Starting {breeding_strategy}, {terminal_type} at {timestamp.strftime('%Y-%m-%d_%H-%M')} "
+            f"Starting {self.title}: {breeding_strategy}, {terminal_type} "
         )
         self.terminal_type = terminal_type
         self.terminals = TERMINAL_DICT[terminal_type]
@@ -395,6 +397,7 @@ class Run:
         return parents
 
     def breed(self, parents):
+        ## could parallelize but doesn't seem like a big time sink
         children = []
 
         ## crossover
@@ -419,7 +422,7 @@ class Run:
             children.append(child)
 
         ## mutation
-        for i in range(c.CROSSOVER_COUNT, c.POPULATION_COUNT):
+        for i in range(c.CROSSOVER_COUNT, c.CROSSOVER_COUNT + c.MUTATION_COUNT):
             j = random.choice([0, 1, 2, 3])
             child = Pride([copy_tree(lion) for lion in parents[i].lions], self.logger)
             child.lions[j] = mutate(child.lions[j], self.terminals)
@@ -427,6 +430,11 @@ class Run:
                 child = Pride(
                     [copy_tree(child.lions[j]) for _ in range(4)], self.logger
                 )
+            children.append(child)
+
+        ## reproduction
+        for i in range(c.CROSSOVER_COUNT + c.MUTATION_COUNT, c.POPULATION_COUNT):
+            child = parents[i]
             children.append(child)
 
         assert len(children) == c.POPULATION_COUNT
@@ -462,22 +470,20 @@ class Run:
     def save_best_positions(self, save_path="position_data"):
         out_dir = Path(save_path) / self.terminal_type / self.breeding_strategy
         out_dir.mkdir(parents=True, exist_ok=True)
-        path = out_dir / f"{self.timestamp}.npy"
+        path = out_dir / f"{self.title}_{self.timestamp}.npy"
         np.save(path, self.best_positions)
         return path
 
     def save_run_results(self, save_path="results"):
         out_dir = Path(save_path) / self.terminal_type / self.breeding_strategy
         out_dir.mkdir(parents=True, exist_ok=True)
-        path = out_dir / f"{self.timestamp}.npy"
+        save_path = out_dir / f"{self.title}_{self.timestamp}_checkpoint.npz"
         np.savez(
-            out_dir / f"{self.timestamp}_checkpoint.npz",
+            save_path,
             best_loss=self.best_loss,
             avg_loss=self.avg_loss,
         )
-        self.logger.info(
-            f"Saved average and best loss to {out_dir / f'{self.timestamp}_checkpoint.npz'} "
-        )
+        self.logger.info(f"Saved average and best loss to {save_path} ")
 
 
 def random_positions():
@@ -540,14 +546,3 @@ def single_simulation(pride: Pride) -> tuple[np.ndarray, list[Context], bool]:
             if ctxs[1].caught_gazelle:
                 return positions, ctxs, True
     return positions, ctxs, False
-
-
-if __name__ == "__main__":
-    sensing_terminals = ["Name", "Deitic", "Base"]
-    breeding_strategies = ["Restricted", "Clone", "Free"]
-    logger = set_up_logging()
-    for terminal, strat in product(sensing_terminals, breeding_strategies):
-        run = Run(terminal, strat, logger)
-        run.run_gens()
-        run.save_best_positions()
-        run.save_run_results()

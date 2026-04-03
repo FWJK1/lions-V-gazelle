@@ -20,6 +20,6 @@ my_job_header
 echo "Python: $(python --version) | Env: $CONDA_DEFAULT_ENV | Start: $(date)"
 
 cd /gpfs1/home/f/k/fkeenank/lions-V-gazelle
-python src/node.py
+python src/main.py --title "reproduction_only"
 
 echo "End: $(date)"
