@@ -1,5 +1,5 @@
 [overview]
-title = "default"
+title = "big_step"
 terminals = ["Name", "Deitic", "Base"]
 strategies = ["Restricted", "Clone", "Free"]
 
