@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --time=36:00:00
+#SBATCH --time=48:00:00
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=fkeenank@uvm.edu
 #SBATCH --output=/gpfs1/home/f/k/fkeenank/logs/lions-slurm-%j.out
