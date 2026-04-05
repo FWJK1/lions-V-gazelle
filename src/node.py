@@ -163,7 +163,7 @@ class Pride:
         return "\n".join([repr(lion) for lion in self.lions])
 
     def to_dict(self) -> list:
-        return [lion.to_dict for lion in self.lions]
+        return [lion.to_dict() for lion in self.lions]
 
     @classmethod
     def random(

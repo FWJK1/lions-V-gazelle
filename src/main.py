@@ -29,3 +29,4 @@ if __name__ == "__main__":
         run.run_gens()
         run.save_positions()
         run.save_run_results()
+        run.save_pride_history()

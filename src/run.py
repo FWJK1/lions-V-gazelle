@@ -69,7 +69,10 @@ class Run:
         self.best_positions = np.zeros((c.gen_count, c.steps_per_sim * 2 + 1, 5, 2))
         self.random_positions = np.zeros((c.gen_count, c.steps_per_sim * 2 + 1, 5, 2))
 
-        self.pride_history = [pride.to_dict() for pride in self.population]
+        self.out_dir = (
+            Path("results") / self.c.title / self.terminal_type / self.breeding_strategy
+        )
+        self.out_dir.mkdir(parents=True, exist_ok=True)
 
     def select_parents(self, gen):
         parents = []
@@ -125,7 +128,6 @@ class Run:
             children.append(child)
 
         assert len(children) == self.c.population_count
-        self.pride_history.append([pride.to_dict() for pride in children])
         return children
 
     def run_gens(self):
@@ -164,27 +166,20 @@ class Run:
                 ## modification
                 parents = self.select_parents(gen)
                 self.population = self.breed(parents)
+                self.save_pride_history()
 
     def save_positions(self, save_path="results"):
-        out_dir = (
-            Path(save_path) / self.c.title / self.terminal_type / self.breeding_strategy
-        )
-        out_dir.mkdir(parents=True, exist_ok=True)
-        path = out_dir / "best_positions.npy"
+        path = self.out_dir / "best_positions.npy"
         np.save(path, self.best_positions)
         self.logger.info(f"Saved best positions to {path}")
 
-        path = out_dir / "random_positions.npy"
+        path = self.out_dir / "random_positions.npy"
         np.save(path, self.random_positions)
         self.logger.info(f"Saved random positions to {path}")
         return path
 
     def save_run_results(self, save_path="results"):
-        out_dir = (
-            Path(save_path) / self.c.title / self.terminal_type / self.breeding_strategy
-        )
-        out_dir.mkdir(parents=True, exist_ok=True)
-        save_path = out_dir / "loss_results.npz"
+        save_path = self.out_dir / "loss_results.npz"
         np.savez(
             save_path,
             best_loss=self.best_loss,
@@ -192,13 +187,10 @@ class Run:
         )
         self.logger.info(f"Saved average and best loss to {save_path} ")
 
-    def save_pride_history(self, save_path="results"):
-        out_dir = (
-            Path(save_path) / self.c.title / self.terminal_type / self.breeding_strategy
-        )
-        history_path = out_dir / "pride_history.json"
-        with open(history_path, "w") as f:
-            json.dump(self.pride_history, f)
+    def save_pride_history(self):
+        history_path = self.out_dir / "pride_history.jsonl"
+        with open(history_path, "a") as f:
+            f.write(json.dumps([pride.to_dict() for pride in self.population]) + "\n")
 
 
 def random_positions(c: Config):
