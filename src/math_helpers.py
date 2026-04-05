@@ -1,10 +1,10 @@
-import constants as c
 import numpy as np
+from config_parser import Config
 
 
 ## math helpers
-def vector_between(pos_a, pos_b):
-    return (pos_b - pos_a + c.WORLD / 2) % c.WORLD - c.WORLD / 2
+def vector_between(pos_a, pos_b, c: Config):
+    return (pos_b - pos_a + c.world / 2) % c.world - c.world / 2
 
 
 def angle_diff(angle1, angle2):
@@ -26,8 +26,8 @@ def rand_scale(vec):
     return vec * np.random.random()
 
 
-def invert(vec: np.ndarray) -> np.ndarray:
+def invert(vec: np.ndarray, c: Config) -> np.ndarray:
     mag = np.linalg.norm(vec)
     if mag == 0:
         return np.zeros(2)
-    return (vec / mag) * (c.MAX_NORM - mag)
+    return (vec / mag) * (c.max_norm - mag)

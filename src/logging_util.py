@@ -14,9 +14,9 @@ from pathlib import Path
 
 
 def set_up_logging(
-    save_path: str | Path = "logs", name="lion_gazelle_log"
+    name="lion_gazelle_log", save_path: str | Path = "logs"
 ) -> logging.Logger:
-    timestamp = datetime.now().strftime("%d-%m%-Y_%H:%M")
+    timestamp = datetime.now().strftime("%d-%m-%y_%H:%M")
     out_dir = Path(save_path)
     out_dir.mkdir(parents=True, exist_ok=True)
     log_file = out_dir / f"{name}_{timestamp}"
