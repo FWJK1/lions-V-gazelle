@@ -20,6 +20,6 @@ my_job_header
 echo "Python: $(python --version) | Env: $CONDA_DEFAULT_ENV | Start: $(date)"
 
 cd /gpfs1/home/f/k/fkeenank/lions-V-gazelle
-python src/main.py --config "$1"
+python src/main.py --config "$CONFIG"
 
 echo "End: $(date)"
