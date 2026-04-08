@@ -6,12 +6,8 @@ project:
 
 website:
   title: "Lion Coordination"
-  navbar:
-    left:
-      - href: Quarto/results.qmd
-        text: Results
-      - href: Quarto/design.qmd
-        text: Design
+  sidebar:
+    contents: auto
   
 
 execute: 
