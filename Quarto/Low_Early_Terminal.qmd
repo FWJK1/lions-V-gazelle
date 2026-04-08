@@ -1,0 +1,93 @@
+---
+title: "Results"
+author: Fitz Koch
+date: today
+description:  Results from reimplementation
+format: 
+  html:
+    html-math-method: mathjax
+    fig-responsive: true
+    toc: true
+    toc-location: left
+    theme: cosmo
+    page-layout: full
+  ipynb:
+    wrap: none
+  pdf:
+    include-in-header:
+      text: |
+        \usepackage{enumitem}
+        \setlistdepth{9}
+execute: 
+  cache: true
+editor:
+    render-on-save: true
+bibliography: /home/fitsl/library/zotero/fjk_library.bib
+
+---
+
+# Setup
+
+{{< include _setup.qmd >}}
+
+# Imports
+```{python}
+# | cache: false
+
+## std lib
+from pathlib import Path
+from itertools import product
+
+## 3rd p lib
+from IPython.display import display, HTML
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
+# project code
+from src.config_parser import load_config
+from src.viz import viz_sim, plot_loss_curves
+```
+
+
+```{python}
+# | tags: [parameters]
+
+experiment = "Low_Early_Terminal"
+``` 
+
+# Loss Curves
+```{python}
+sensing_terminals = ["Name", "Deitic", "Base"]
+path_end = "loss_results.npz"
+result_path = Path("results")
+
+for terminal in sensing_terminals:
+    clone_data = np.load(result_path / experiment / terminal / "Clone" / path_end)
+    free_data = np.load(result_path / experiment / terminal / "Free" / path_end)
+    restricted_data = np.load(result_path / experiment / terminal / "Restricted" / path_end)  # fmt: skip
+
+    plot_loss_curves(
+        clone_data, free_data, restricted_data, title=f"{experiment}: {terminal}"
+    )
+``` 
+
+
+
+# Animations
+```{python}
+anim = Path("animations")
+terminals = ["Base", "Deitic", "Name"]
+strategies = ["Clone", "Free", "Restricted"]
+qualities = ["best_positions", "random_positions"]
+generations = ["first", "final"]
+
+
+for terminal, strategy, quality, generation in product(
+    terminals, strategies, qualities, generations
+):
+    path = anim / experiment / terminal / strategy / f"{quality}_{generation}.html"
+    with open(path) as f:
+        display(HTML(f.read()))
+```
+

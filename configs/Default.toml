@@ -1,0 +1,29 @@
+[overview]
+title = "Default"
+terminals = ["Name", "Deitic", "Base"]
+strategies = ["Restricted", "Clone", "Free"]
+
+
+[world]
+width = 15
+height = 15
+
+[animals]
+gazelle_step = 3
+initial_dist = 1
+
+[gp_trees]
+max_depth = 17
+max_size = 70
+early_terminal_probability = 0.3
+
+[run_counts]
+gen_count = 51
+steps_per_sim = 15
+sims_per_gen = 5
+
+[population]
+population_count = 500
+mutation_percentage = 0
+reproduction_percentage = 0.1
+tournament_n = 7

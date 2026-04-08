@@ -1,12 +1,12 @@
 import argparse
-from run import Run
-from logging_util import set_up_logging
+from src.run import Run
+from src.logging_util import set_up_logging
 from itertools import product
 
 from dataclasses import asdict
 
 
-from config_parser import load_config
+from src.config_parser import load_config
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

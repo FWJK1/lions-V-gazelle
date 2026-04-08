@@ -1,10 +1,10 @@
 from typing import Callable
-import math_helpers as m
+from . import math_helpers as m
 import numpy as np
 import random
-from config_parser import Config
+from .config_parser import Config
 
-from context import Context
+from .context import Context
 
 
 OPERATORS: dict[str, tuple[int, Callable]] = {

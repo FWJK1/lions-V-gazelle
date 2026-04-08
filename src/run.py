@@ -17,10 +17,10 @@ from functools import partial
 
 import numpy as np
 
-import math_helpers as m
-from config_parser import Config
-from node import Pride, copy_tree, crossover, mutate, get_gazelle_vector
-from context import Context, update_ctxs, update_gazelle_ctx
+from . import math_helpers as m
+from .config_parser import Config
+from .node import Pride, copy_tree, crossover, mutate, get_gazelle_vector
+from .context import Context, update_ctxs, update_gazelle_ctx
 
 
 # Terminal sets per sensing mode

@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 import numpy as np
-from config_parser import Config
+from .config_parser import Config
 from itertools import combinations
-import math_helpers as m
+from . import math_helpers as m
 
 
 @dataclass

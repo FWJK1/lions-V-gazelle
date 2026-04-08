@@ -48,7 +48,7 @@ import matplotlib.pyplot as plt
 
 # project code
 import src.viz as viz
-from config_parser import load_config 
+from src.config_parser import load_config
 
 
 importlib.reload(viz)
@@ -63,10 +63,6 @@ Currently, I've only run the 'restricted' breeding strategy with the 'name' sens
 * clone-name does far better in our case 
 * in fact, generally, there doesn't seem to be all that much separating the different categories in performance or in final animations.
 * I only ran the first 35 generations, as that's where the real differentiation seemed to happen in the original experiment, so it could be that. 
-
-This is almost certainly due to some bug, incorrect implementation, or unexpected side-effect or detail of the`lil-gp` paradigm. My strongest suspicion is that they did something more 'generous' that having a 30% of an 'early termination' for each node; maybe something more like 10%. So I'm running that to test it now. 
-
-Still, we can certainly see the results in an interesting fashion. 
 
 ## Animations
 The meat of it. 
@@ -163,6 +159,87 @@ for terminal in sensing_terminals:
     restricted_data = np.load(Path("results") / id / terminal / "Restricted" / path_end)  # fmt: skip
 
     plot_loss_curves(clone_data, free_data, restricted_data, title=f"{id}: {terminal}")
+``` 
+
+
+
+Again, the results definitely don't agree with those in the published paper -- lions catch much more frequently, it seems, yet the average loss does not go as low. In addition, there is not nearly as much differentiation between the different breeding strategies and terminals as in their results. I suspect this is something to do with the details of the `name` terminals, though I'm not totally sure exactly what it is, and Claude has not been able to figure it out either. 
+This is almost certainly due to some bug, incorrect implementation, or unexpected side-effect or detail of the`lil-gp` paradigm. My strongest suspicion is that they did something more 'generous' that having a 30% of an 'early termination' for each node; maybe something more like 10%. So I'm running that to test it now. 
+
+Still, we can certainly see the results in an interesting fashion. 
+
+## Animations
+The meat of it. 
+
+```{python}
+
+base_path = Path("results")
+terminals = ["Base", "Deitic", "Name"]
+strategies = ["Clone", "Free", "Restricted"]
+id = "quick_test"
+config = load_config(Path("configs") / f"{id}.toml")
+
+
+for terminal, strategy in product(terminals, strategies):
+    path = base_path / id / terminal / strategy / "best_positions.npy"
+    try:
+        data = np.load(path)
+        display(
+            viz_sim(
+                data[0],
+                c=config,
+                title=f"{id} Best positions: {terminal}, {strategy}: First Gen",
+            )
+        )
+        display(
+            viz_sim(
+                data[-1],
+                c=config,
+                title=f"{id} Best Positions: {terminal}, {strategy}:  Final Gen",
+            )
+        )
+    except:
+        print(f"failed to load {path}")
+    path = base_path / id / terminal / strategy / "random_positions.npy"
+    try:
+        data = np.load(path)
+        display(
+            viz_sim(
+                data[0],
+                c=config,
+                title=f"{id} Random Positions: {terminal}, {strategy}: First Gen",
+            )
+        )
+        display(
+            viz_sim(
+                data[-1],
+                c=config,
+                title=f"{id} Random Positions: {terminal}, {strategy}:  Final Gen",
+            )
+        )
+    except:
+        print(f"failed to load {path}")
+```
+
+
+
+
+## Loss Curves 
+
+```{python}
+sensing_terminals = ["Name", "Deitic", "Base"]
+id = "quick_test"
+path_end = "loss_results.npz"
+
+
+for terminal in sensing_terminals:
+    clone_data = np.load(Path("results") / id / terminal / "Clone" / path_end)
+    free_data = np.load(Path("results") / id / terminal / "Free" / path_end)
+    restricted_data = np.load(Path("results") / id / terminal / "Restricted" / path_end)  # fmt: skip
+
+    viz.plot_loss_curves(
+        clone_data, free_data, restricted_data, title=f"{id}: {terminal}"
+    )
 ``` 
 
 

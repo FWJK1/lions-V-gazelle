@@ -6,6 +6,10 @@
 * principal code is currently in `node.py`
 
 
+# Cloning
+* Neither animations nor results are stored for reasons of space; you'll have to rerun the code yourself, either using the `slur` script or not. 
+
+
 ```
 Luke, Sean, and Lee Spector. 1996. “Evolving Teamwork and Coordination with Genetic Programming.” In Proceedings of the 1st Annual Conference on Genetic Programming, 150–56. Cambridge, MA, USA: MIT Press.
 ```

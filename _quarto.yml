@@ -1,12 +1,18 @@
 project:
   type: website
   output-dir: docs
+  render:
+    - Quarto/*.qmd
 
 website:
   title: "Lion Coordination"
   navbar:
     left:
-      - href: results.qmd
+      - href: Quarto/results.qmd
         text: Results
-      - href: design.qmd
+      - href: Quarto/design.qmd
         text: Design
+  
+
+execute: 
+  python-path: src

@@ -1,5 +1,5 @@
 import numpy as np
-from config_parser import Config
+from .config_parser import Config
 
 
 ## math helpers
