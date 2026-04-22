@@ -7,6 +7,10 @@ project:
 
 website:
   title: "Lion Coordination"
+  navbar:
+    right:
+      - text: "Slides"
+        href: Quarto/presentation.html
   sidebar:
     contents: auto
   

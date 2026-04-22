@@ -1,0 +1,196 @@
+---
+title: "Lions & Gazelle Coordination"
+subtitle: "Emergent Teamwork via Genetic Programming"
+author: Fitz Koch
+date: today
+format:
+  revealjs:
+    theme: moon
+    slide-number: true
+    toc: false
+    fig-align: center
+execute:
+  echo: false
+  cache: true
+bibliography: /home/fitsl/library/zotero/fjk_library.bib
+---
+
+```{python}
+#| include: false
+import sys, os
+from pathlib import Path
+
+_project_root = Path.cwd()
+while not (_project_root / "src").exists():
+    _project_root = _project_root.parent
+os.chdir(_project_root)
+```
+
+```{python}
+#| include: false
+#| cache: false
+
+from pathlib import Path
+from itertools import product
+from dataclasses import asdict
+import pprint
+
+from IPython.display import display, HTML
+import numpy as np
+import matplotlib.pyplot as plt
+
+from src.config_parser import load_config
+from src.viz import plot_loss_curves
+
+plt.style.use(["ggplot"])
+IMG_WIDTH = 12
+IMG_HEIGHT = 5
+
+experiment = "Default"
+config_path = Path("configs") / f"{experiment}.toml"
+config = load_config(config_path)
+```
+
+# Overview
+
+## The Problem
+
+- Reimplementation of @lukeEvolvingTeamworkCoordination1996
+- Four lions chasing a gazelle on a toroidal 15×15 grid
+- Lions evolve vector-operation trees to coordinate
+- Key constraint: **no communication between lions**
+
+## Goal
+
+> Study the emergence of coordination *without communication*
+
+- Coordination must be implicit in evolved behavior
+- Three sensing modes × three breeding strategies
+- 51 generations, 500 prides per run
+
+---
+
+# Design
+
+## World & Animals
+
+:::: {.columns}
+::: {.column width="50%"}
+**World**
+
+- Toroidal 15×15 grid, floating point
+- Discrete updates
+:::
+::: {.column width="50%"}
+**Gazelle**
+
+- Moves **3 units/turn** via fear vector:
+
+$$
+-\sum_{v \in V} \frac{v}{\|v\|} (\|\text{max}\| - \|v\|)
+$$
+
+**Lions**
+
+- Move **1 unit/turn** per evolved tree
+- Catch condition: within 1 unit of gazelle
+:::
+::::
+
+## Operators
+
+| Name | Args | Description |
+|---|---|---|
+| `gazelle` | 0 | Vector lion → gazelle |
+| `last` | 0 | Repeat last direction |
+| `rand-dir` | 0 | Random unit vector |
+| `+` / `-` | 2 / 1 | Add / negate |
+| `×2` / `/2` | 1 | Scale magnitude |
+| `→90` | 1 | Rotate 90° clockwise |
+| `ifdot` / `if>=` | 4 | Conditional branches |
+
+## Sensing Terminals
+
+| Group | Terminals | Description |
+|---|---|---|
+| Base | *(none)* | No lion-awareness |
+| Deictic | `nearest`, `lion`, `rlion`, `llion` | Relative neighbors |
+| Name | `lion-0..3` | Named lion vectors |
+
+## Breeding Strategies
+
+- **Clone** — all four lions share one identical tree
+- **Free** — any lion breeds with any other
+- **Restricted** — lion $i$ only breeds with lion $i$
+
+## Genetic Programming Setup
+
+- Population: 500 prides
+- Max depth: 17 / Max size: 70
+- Crossover: 90% | Reproduction: 10%
+- Selection: tournament ($N=7$)
+- Fitness: avg distance − 1 over 5 sims (0 if caught)
+
+---
+
+# Results: Default Config
+
+## Config
+
+```{python}
+pprint.pprint(asdict(config), sort_dicts=False)
+```
+
+## Loss Curves — Name Terminals
+
+```{python}
+result_path = Path("results")
+path_end = "loss_results.npz"
+terminal = "Name"
+clone_data = np.load(result_path / experiment / terminal / "Clone" / path_end)
+free_data = np.load(result_path / experiment / terminal / "Free" / path_end)
+restricted_data = np.load(result_path / experiment / terminal / "Restricted" / path_end)
+plot_loss_curves(clone_data, free_data, restricted_data, title=f"{experiment}: {terminal}")
+```
+
+## Loss Curves — Deictic Terminals
+
+```{python}
+terminal = "Deitic"
+clone_data = np.load(result_path / experiment / terminal / "Clone" / path_end)
+free_data = np.load(result_path / experiment / terminal / "Free" / path_end)
+restricted_data = np.load(result_path / experiment / terminal / "Restricted" / path_end)
+plot_loss_curves(clone_data, free_data, restricted_data, title=f"{experiment}: {terminal}")
+```
+
+## Loss Curves — Base Terminals
+
+```{python}
+terminal = "Base"
+clone_data = np.load(result_path / experiment / terminal / "Clone" / path_end)
+free_data = np.load(result_path / experiment / terminal / "Free" / path_end)
+restricted_data = np.load(result_path / experiment / terminal / "Restricted" / path_end)
+plot_loss_curves(clone_data, free_data, restricted_data, title=f"{experiment}: {terminal}")
+```
+
+## Animations — Best Positions, Final Generation
+
+```{python}
+anim = Path("animations")
+for terminal in ["Base", "Deitic", "Name"]:
+    path = anim / experiment / terminal / "Free" / "best_positions_final.html"
+    with open(path) as f:
+        display(HTML(f.read()))
+```
+
+---
+
+# Conclusions
+
+## Key Findings
+
+- *[placeholder — fill after full analysis]*
+
+## Next Steps
+
+- *[placeholder]*

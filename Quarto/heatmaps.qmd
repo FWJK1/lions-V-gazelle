@@ -1,0 +1,257 @@
+---
+title: "Allotax Test"
+author: Fitz Koch
+date: today
+description:  Allotax of operations
+---
+
+# Setup
+Navigate to root:
+```{python}
+import sys, os
+from pathlib import Path
+
+_project_root = Path.cwd()
+while not (_project_root / "src").exists():
+    _project_root = _project_root.parent
+os.chdir(_project_root)
+```
+
+# Imports
+```{python}
+# | cache: false
+
+## std lib
+from pathlib import Path
+from itertools import product
+import json
+from ast import literal_eval
+import pprint
+
+
+## 3rd p lib
+from IPython.display import display, HTML
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import pandas as pd
+import seaborn as sns
+from py_allotax.generate_svg import generate_svg
+
+## project
+from src.node import INTERNALS
+from src.run import TERMINAL_DICT, BASE_TERMINALS, DEICTIC_TERMINALS, NAME_TERMINALS
+from src.config_parser import Config, load_config
+
+
+
+# constants
+IMG_WIDTH = 12
+IMG_HEIGHT = 6
+plt.style.use(["ggplot"])
+```
+
+# Load Data
+
+It's big, so we'll start with one line:
+
+```{python}
+#| tags: [parameters]
+
+experiment = "Default"
+result_path = Path("results")
+path_end = "pride_history.jsonl"
+terminal = "Base"
+strategy = "Free"
+file_path = result_path / experiment / terminal / strategy / path_end
+config_path = Path("configs") / f"{experiment}.toml"
+config = load_config(config_path)
+line = ""
+with open(file_path) as f:
+    for gen, line in enumerate(f):
+        print(gen)
+        print(line[:50])
+        line = line
+``` 
+
+
+```{python}
+terminals_used = TERMINAL_DICT[terminal]
+print(terminals_used)
+```
+
+
+# Building Count Operations
+```{python}
+prides = literal_eval(line)
+``` 
+
+
+```{python}
+print(prides[0][0])
+```
+
+```{python}
+def build_counts():
+  counts = {
+    operator : [0 for _ in range(config.max_depth+1)] #  TODO: Change once rerun with max_depth bug fixed
+    for operator in terminals_used+INTERNALS
+  }
+  return counts
+```
+
+Look at a single lion:
+```{python}
+def count_operations(node, level=0, counts=None):
+  if counts is None:
+    counts = build_counts()
+  op = node['op']
+  counts[op][level] += 1
+  for child in node["children"]: 
+    count_operations(child, level+1, counts)
+  return counts
+
+counts = count_operations(prides[0][0])
+pprint.pprint(counts)
+```
+
+Look at a pride:
+
+```{python}
+counts = build_counts()
+for lion in prides[0]:
+  counts = count_operations(lion, level=0, counts=counts)
+pprint.pprint(counts)
+```
+
+Look at a generation:
+
+```{python}
+counts = build_counts()
+for pride in prides:
+  for lion in pride:
+    counts = count_operations(lion, level=0, counts=counts)
+pprint.pprint(counts)
+```
+
+Cool, that seems to be working. But probably it makes the most sense to have these in a dataframe. 
+
+```{python}
+df = pd.DataFrame.from_dict(counts, orient="index")
+df.head()
+```
+
+Great, this looks good. The column index are what 'hierarchy' the operation is in, with $0$ being the top of the chain and $17$ the lowest (there's a slight bug  with `max_depth` where I did $\ge$ as the redo condition for initial construction and $>$ for crossover, which will require a redo for proper results, but is okay).
+
+# Getting Results
+Quick inspection of the first line...
+
+```{python}
+print(file_path)
+with open(file_path) as f:
+    line = f.readline()
+line = line
+prides = literal_eval(line)
+print(prides[0][0])
+```
+
+Looks good. 
+
+
+```{python}
+def get_gen_op_counts(file_path, gen_idx):
+    with open(file_path) as f:
+        for i, line in enumerate(f):
+            if i == gen_idx:
+                population = json.loads(line)
+                break
+    
+    counts = build_counts()
+    for pride in population:
+        for lion in pride:
+            count_operations(lion, 0, counts)
+    df = pd.DataFrame.from_dict(counts, orient="index")
+    return df
+```
+
+
+```{python}
+generations_of_interest = [0, 5, 15, 20,  51]
+dfs = [get_gen_op_counts(file_path, gen) for gen in generations_of_interest]
+n_gen = len(generations_of_interest)
+n_rows = (n_gen + 1) // 2
+
+fig, axes = plt.subplots(n_rows,  2, figsize=(IMG_WIDTH, IMG_HEIGHT*n_rows))
+axes = axes.flatten()
+
+for i, (ax, df, title) in enumerate(zip(axes, dfs, [f"Generation {gen}" for gen in generations_of_interest])):
+    df = df.div(df.sum()) ## normalize by column (depth)
+    sns.heatmap(df, ax=ax, cmap="viridis", annot=False, cbar=False)
+    ax.set_title(title)
+    ax.set_xlabel("Node Depth")
+plt.suptitle(f"Heatplots for {experiment} {terminal} {strategy}, normalized by depth")
+plt.tight_layout()
+fig.subplots_adjust(bottom=0.1)
+sm = plt.cm.ScalarMappable(cmap="viridis", norm=plt.Normalize(0, 1))
+cbar = fig.colorbar(sm, ax=axes, orientation="horizontal", 
+                    fraction=0.02, pad=0.04, location="bottom")
+plt.show()
+```
+
+
+```{python}
+def get_depth_profile(df):
+    return df.sum(axis=0)  # sum all ops at each depth level
+
+depth_profiles = pd.DataFrame(
+    {f"Gen {gen}": get_depth_profile(df) for gen, df in zip(generations_of_interest, dfs)}
+)
+
+depth_profiles.plot(figsize=(IMG_WIDTH, IMG_HEIGHT))
+ax.set_xlabel("Depth")
+ax.set_ylabel("Node count")
+ax.set_title(f"Depth profile across generations — {experiment} {terminal} {strategy}")
+```
+
+
+Great, looks good, now we'll turn this into functions in `src` and run them on all our experiments that way, too. 
+
+To check:
+
+
+
+```{python}
+def plot_depths(gens, dfs, ax, title_specs):
+    depth_profiles = pd.DataFrame(
+        {f"Gen {gen}": df.sum(axis=0) for gen, df in zip(gens, dfs)}
+    )
+    depth_profiles.plot(ax=ax)
+    ax.set_xlabel("Depth")
+    ax.set_ylabel("Node count")
+    ax.set_ylim(bottom=0)
+    ax.set_title(f"Depth profile — {title_specs}")
+
+
+def plot_heatmaps(file_path, gens, title_spec):
+    dfs = [get_gen_op_counts(file_path, gen) for gen in gens]
+    n_axes = len(gens) + 1
+    n_rows = (n_axes + 1) // 2
+
+    fig, axes = plt.subplots(n_rows, 2, figsize=(IMG_WIDTH, IMG_HEIGHT * n_rows))
+    axes = axes.flatten()
+
+    for i, (ax, df, title) in enumerate(
+        zip(axes, dfs, [f"Generation {gen}" for gen in gens])
+    ):
+        df = df.div(df.sum())  ## normalize by column (depth)
+        sns.heatmap(df, ax=ax, cmap="viridis", annot=False, cbar=True)
+        ax.set_title(title)
+        ax.set_xlabel("Node Depth")
+
+    plot_depths(gens, dfs, axes[len(gens)], title_spec)
+    plt.suptitle(f"Heatplots for {title_spec}, normalized by depth")
+    plt.tight_layout()
+    plt.show()
+
+plot_heatmaps(file_path=file_path, gens=[0, 5, 51], title_spec=f"{experiment} {terminal} {strategy}" )
+```

@@ -17,6 +17,8 @@ while not (_project_root / "src").exists():
     _project_root = _project_root.parent
 os.chdir(_project_root)
 ```
+
+
 # Imports
 ```{python}
 # | cache: false
@@ -24,6 +26,8 @@ os.chdir(_project_root)
 ## std lib
 from pathlib import Path
 from itertools import product
+from dataclasses import asdict
+import pprint
 
 ## 3rd p lib
 from IPython.display import display, HTML
@@ -34,6 +38,12 @@ import matplotlib.animation as animation
 # project code
 from src.config_parser import load_config
 from src.viz import viz_sim, plot_loss_curves
+
+
+
+# constants
+IMG_WIDTH = 12
+plt.style.use(["ggplot"])
 ```
 
 
@@ -41,7 +51,13 @@ from src.viz import viz_sim, plot_loss_curves
 # | tags: [parameters]
 
 experiment = "Low_Early_Terminal"
-``` 
+```
+
+```{python}
+config_path = Path("configs") / f"{experiment}.toml"
+config = load_config(config_path)
+pprint.pprint(asdict(config), sort_dicts=False)
+```
 
 # Loss Curves
 ```{python}
@@ -68,12 +84,28 @@ terminals = ["Base", "Deitic", "Name"]
 strategies = ["Clone", "Free", "Restricted"]
 qualities = ["best_positions", "random_positions"]
 generations = ["first", "final"]
+```
 
+## Base
+```{python}
+for strategy, quality, generation in product(strategies, qualities, generations):
+    path = anim / experiment / "Base" / strategy / f"{quality}_{generation}.html"
+    with open(path) as f:
+        display(HTML(f.read()))
+```
 
-for terminal, strategy, quality, generation in product(
-    terminals, strategies, qualities, generations
-):
-    path = anim / experiment / terminal / strategy / f"{quality}_{generation}.html"
+## Deitic
+```{python}
+for strategy, quality, generation in product(strategies, qualities, generations):
+    path = anim / experiment / "Deitic" / strategy / f"{quality}_{generation}.html"
+    with open(path) as f:
+        display(HTML(f.read()))
+```
+
+## Name
+```{python}
+for strategy, quality, generation in product(strategies, qualities, generations):
+    path = anim / experiment / "Name" / strategy / f"{quality}_{generation}.html"
     with open(path) as f:
         display(HTML(f.read()))
 ```

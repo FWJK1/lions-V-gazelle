@@ -6,6 +6,7 @@ description:  Loss curves and animations of lion chasing.
 ---
 
 # Setup
+
 Navigate to root:
 ```{python}
 import sys, os
@@ -25,6 +26,9 @@ os.chdir(_project_root)
 ## std lib
 from pathlib import Path
 from itertools import product
+from dataclasses import asdict
+import pprint
+import gc 
 
 ## 3rd p lib
 from IPython.display import display, HTML
@@ -35,7 +39,16 @@ import matplotlib.animation as animation
 # project code
 from src.config_parser import load_config
 from src.viz import viz_sim, plot_loss_curves
+from src.rank_comparison import plot_heatmaps
+
+
+
+# constants
+IMG_WIDTH = 12
+
+plt.style.use(["ggplot"])
 ```
+
 
 
 ```{python}
@@ -43,6 +56,13 @@ from src.viz import viz_sim, plot_loss_curves
 
 experiment = "Default"
 ``` 
+
+
+```{python}
+config_path = Path("configs") / f"{experiment}.toml"
+config = load_config(config_path)
+pprint.pprint(asdict(config), sort_dicts=False)
+```
 
 # Loss Curves
 ```{python}
@@ -61,20 +81,86 @@ for terminal in sensing_terminals:
 ``` 
 
 
+# Vector Operation Heatmaps
+
+```{python}
+terminals = ["Base", "Deitic", "Name"]
+strategies = ["Clone", "Free", "Restricted"]
+history_path = "pride_history.jsonl"
+```
+
+## Base
+```{python}
+for strategy in strategies:
+    path = result_path / experiment / "Base" / strategy / history_path
+    plot_heatmaps(
+        path,
+        gens=[0, 5, 10, 15, 51],
+        title_spec=f"{experiment} Base {strategy}",
+        terminal="Base",
+        max_depth=config.max_depth,
+    )
+gc.close('all')
+```
+
+## Deitic
+```{python}
+for strategy in strategies:
+    path = result_path / experiment / "Deitic" / strategy / history_path
+    plot_heatmaps(
+        path,
+        gens=[0, 5, 10, 15, 51],
+        title_spec=f"{experiment} Deitic {strategy}",
+        terminal="Deitic",
+        max_depth=config.max_depth,
+    )
+gc.close('all')
+
+```
+
+## Name
+```{python}
+for strategy in strategies:
+    path = result_path / experiment / "Name" / strategy / history_path
+    plot_heatmaps(
+        path,
+        gens=[0, 5, 10, 15, 51],
+        title_spec=f"{experiment} Name {strategy}",
+        terminal="Name",
+        max_depth=config.max_depth,
+    )
+gc.close('all')
+
+```
+
 
 # Animations
 ```{python}
 anim = Path("animations")
-terminals = ["Base", "Deitic", "Name"]
-strategies = ["Clone", "Free", "Restricted"]
 qualities = ["best_positions", "random_positions"]
 generations = ["first", "final"]
+```
 
+## Base
+```{python}
+for strategy, quality, generation in product(strategies, qualities, generations):
+    path = anim / experiment / "Base" / strategy / f"{quality}_{generation}.html"
+    with open(path) as f:
+        display(HTML(f.read()))
+```
 
-for terminal, strategy, quality, generation in product(
-    terminals, strategies, qualities, generations
-):
-    path = anim / experiment / terminal / strategy / f"{quality}_{generation}.html"
+## Deitic
+```{python}
+for strategy, quality, generation in product(strategies, qualities, generations):
+    path = anim / experiment / "Deitic" / strategy / f"{quality}_{generation}.html"
+    with open(path) as f:
+        display(HTML(f.read()))
+```
+
+## Name
+```{python}
+for strategy, quality, generation in product(strategies, qualities, generations):
+    path = anim / experiment / "Name" / strategy / f"{quality}_{generation}.html"
     with open(path) as f:
         display(HTML(f.read()))
 ```
