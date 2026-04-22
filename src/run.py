@@ -62,7 +62,6 @@ class Run:
         ]
         self.loss = np.zeros((c.gen_count, c.population_count))
         self.breeding_strategy = breeding_strategy
-        self.terminals = self.terminals
         self.best_loss = np.zeros(c.gen_count)
         self.best_pride = []
         self.avg_loss = np.zeros(c.gen_count)

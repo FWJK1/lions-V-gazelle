@@ -24,6 +24,8 @@ os.chdir(_project_root)
 ## std lib
 from pathlib import Path
 from itertools import product
+import json 
+from ast import literal_eval
 
 ## 3rd p lib
 from IPython.display import display, HTML
@@ -31,30 +33,65 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-# project code
-from src.config_parser import load_config
-from src.viz import viz_sim, plot_loss_curves
+## project
+from src.node import INTERNALS
+from src.run import TERMINAL_DICT, BASE_TERMINALS, DEICTIC_TERMINALS, NAME_TERMINALS
+from src.config_parser import Config, load_config
+
 ```
 
+
+# Load Data
+
+It's big, so we'll start with one line:
 
 ```{python}
 #| tags: [parameters]
 
 experiment = "Default"
-``` 
-
-# Loss Curves
-```{python}
-sensing_terminals = ["Name", "Deitic", "Base"]
-path_end = "loss_results.npz"
 result_path = Path("results")
-
-for terminal in sensing_terminals:
-    clone_data = np.load(result_path / experiment / terminal / "Clone" / path_end)
-    free_data = np.load(result_path / experiment / terminal / "Free" / path_end)
-    restricted_data = np.load(result_path / experiment / terminal / "Restricted" / path_end)  # fmt: skip
-
-    plot_loss_curves(
-        clone_data, free_data, restricted_data, title=f"{experiment}: {terminal}"
-    )
+path_end = "pride_history.jsonl"
+terminal = "Base"
+strategy = "Clone"
+file_path = result_path / experiment / terminal / strategy / path_end
+config_path = Path("configs") / f"{experiment}.toml"
+config = load_config(config_path)
+line = ""
+with open(file_path) as f:
+    for gen, line in enumerate(f):
+        print(gen)
+        print(line[:50])
+        line = line
 ``` 
+
+
+```{python}
+terminals_used = TERMINAL_DICT[terminal]
+print(terminals_used)
+```
+
+
+# Examine the first pride
+```{python}
+prides = literal_eval(line)
+``` 
+
+
+```{python}
+print(prides[0][0])
+```
+
+```{python}
+counts = {
+  operator : [0 for _ in range(config.max_depth)]
+  for operator in 
+}
+```
+
+
+```{python}
+def count_operations(node, level, counts=None):
+  if counts is None:
+    counts = 
+  
+```

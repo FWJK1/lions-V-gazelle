@@ -3,26 +3,7 @@ title: "Design Document"
 author: Fitz Koch
 date: March 31, 2026
 description:  Working through design and trial/error on reimplementation of classic Lions chasing Gazelle project
-format: 
-  html:
-    html-math-method: mathjax
-    fig-responsive: true
-    toc: true
-    toc-location: left
-    theme: cosmo
-    page-layout: full
-  ipynb:
-    wrap: none
-  pdf:
-    include-in-header:
-      text: |
-        \usepackage{enumitem}
-        \setlistdepth{9}
-execute: 
-  cache: true
-editor:
-    render-on-save: true
-bibliography: /home/fitsl/library/zotero/fjk_library.bib
+
 ---
 
 # Overview (Goals)

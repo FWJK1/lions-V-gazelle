@@ -3,27 +3,6 @@ title: "Quick Test Results"
 author: Fitz Koch
 date: today
 description:  Loss curves and animations of lion chasing. 
-format: 
-  html:
-    html-math-method: mathjax
-    fig-responsive: true
-    toc: true
-    toc-location: left
-    theme: cosmo
-    page-layout: full
-  ipynb:
-    wrap: none
-  pdf:
-    include-in-header:
-      text: |
-        \usepackage{enumitem}
-        \setlistdepth{9}
-execute: 
-  cache: true
-editor:
-    render-on-save: true
-bibliography: /home/fitsl/library/zotero/fjk_library.bib
-
 ---
 
 # Setup
