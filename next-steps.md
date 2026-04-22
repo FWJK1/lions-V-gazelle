@@ -12,3 +12,8 @@
 4. Assess difference, potentially also add stuff 
 
 5. Put comparative results into a new `results-summary.qmd`
+
+6. Get into understanding the difference between the genetic trees
+    * Allotax! 
+
+7. Bongard's suggested differences

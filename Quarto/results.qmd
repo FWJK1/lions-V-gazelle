@@ -1,8 +1,8 @@
 ---
-title: "Results"
+title: "Comparative Results and Summary"
 author: Fitz Koch
 date: today
-description:  Results from reimplementation
+description:  Comparing results across results folder
 format: 
   html:
     html-math-method: mathjax
@@ -26,8 +26,16 @@ bibliography: /home/fitsl/library/zotero/fjk_library.bib
 ---
 
 # Setup
+Navigate to root:
+```{python}
+import sys, os
+from pathlib import Path
 
-{{< include _setup.qmd >}}
+_project_root = Path.cwd()
+while not (_project_root / "src").exists():
+    _project_root = _project_root.parent
+os.chdir(_project_root)
+```
 
 # Imports
 ```{python}
